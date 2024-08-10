@@ -1,0 +1,215 @@
+-- LocalScript in StarterPlayerScripts
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "LuaExecutorGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.Enabled = false -- Start hidden
+
+-- Create Main Frame
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0.7, 0, 0.8, 0)
+frame.Position = UDim2.new(0.15, 0, 0.1, 0)
+frame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+-- Create Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0.1, 0)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+title.BorderSizePixel = 0
+title.Text = "ChatBlox Executor"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 24
+title.Parent = frame
+
+-- Create ScrollingFrame for Code Input
+local scrollingFrame = Instance.new("ScrollingFrame")
+scrollingFrame.Size = UDim2.new(1, 0, 0.7, 0)
+scrollingFrame.Position = UDim2.new(0, 0, 0.1, 0)
+scrollingFrame.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+scrollingFrame.BorderSizePixel = 0
+scrollingFrame.ScrollBarThickness = 8
+scrollingFrame.ScrollBarImageColor3 = Color3.new(0.4, 0.4, 0.4)
+scrollingFrame.CanvasSize = UDim2.new(0, 0, 10000, 0) -- Set scrollable height
+scrollingFrame.Parent = frame
+
+-- Create TextBox inside ScrollingFrame for Code Input
+local codeInput = Instance.new("TextBox")
+codeInput.Size = UDim2.new(1, -8, 1, -8)
+codeInput.Position = UDim2.new(0, 4, 0, 4)
+codeInput.BackgroundTransparency = 1
+codeInput.TextColor3 = Color3.new(1, 1, 1)
+codeInput.TextXAlignment = Enum.TextXAlignment.Left
+codeInput.TextYAlignment = Enum.TextYAlignment.Top
+codeInput.Font = Enum.Font.Code
+codeInput.TextSize = 16
+codeInput.ClearTextOnFocus = false
+codeInput.MultiLine = true
+codeInput.TextWrapped = true
+codeInput.Text = "-- Type your Lua code here"
+codeInput.RichText = true
+codeInput.Parent = scrollingFrame
+
+-- Create Execute Button
+local executeButton = Instance.new("TextButton")
+executeButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+executeButton.Position = UDim2.new(0.8, 0, 0.8, 0)
+executeButton.BackgroundColor3 = Color3.new(0.3, 0.7, 0.3)
+executeButton.TextColor3 = Color3.new(1, 1, 1)
+executeButton.Text = "Execute"
+executeButton.Font = Enum.Font.SourceSansBold
+executeButton.TextSize = 18
+executeButton.Parent = frame
+
+-- Create Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+closeButton.BackgroundColor3 = Color3.new(1, 0, 0)
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.Text = "X"
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.TextSize = 18
+closeButton.Parent = frame
+
+-- Create Minimize Button
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+minimizeButton.Position = UDim2.new(0.8, 0, 0, 0)
+minimizeButton.BackgroundColor3 = Color3.new(1, 1, 0)
+minimizeButton.TextColor3 = Color3.new(0, 0, 0)
+minimizeButton.Text = "-"
+minimizeButton.Font = Enum.Font.SourceSansBold
+minimizeButton.TextSize = 18
+minimizeButton.Parent = frame
+
+-- Create Minimized State Icon
+local minimizedIcon = Instance.new("TextButton")
+minimizedIcon.Size = UDim2.new(0.2, 0, 0.2, 0)
+minimizedIcon.Position = UDim2.new(0.8, 0, 0.8, 0)
+minimizedIcon.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
+minimizedIcon.TextColor3 = Color3.new(1, 1, 1)
+minimizedIcon.Text = "Ex"
+minimizedIcon.Font = Enum.Font.SourceSansBold
+minimizedIcon.TextSize = 18
+minimizedIcon.Visible = false
+minimizedIcon.Parent = screenGui
+
+-- Function to execute code
+local function executeCode()
+    local code = codeInput.Text
+    local success, errorMsg = pcall(function()
+        local loadFunc = loadstring(code)
+        if loadFunc then
+            loadFunc()
+        else
+            error("Failed to load code")
+        end
+    end)
+    
+    if not success then
+        warn("Error executing code: " .. errorMsg)
+    end
+end
+
+-- Function to close the GUI
+local function closeGui()
+    screenGui.Enabled = false
+end
+
+-- Function to minimize the GUI
+local function minimizeGui()
+    frame.Visible = false
+    minimizedIcon.Visible = true
+end
+
+-- Function to maximize the GUI
+local function maximizeGui()
+    frame.Visible = true
+    minimizedIcon.Visible = false
+end
+
+-- Connect button clicks to functions
+executeButton.MouseButton1Click:Connect(executeCode)
+closeButton.MouseButton1Click:Connect(closeGui)
+minimizeButton.MouseButton1Click:Connect(minimizeGui)
+minimizedIcon.MouseButton1Click:Connect(maximizeGui)
+
+-- Make the frame draggable
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Make the minimized icon draggable
+minimizedIcon.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = minimizedIcon.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+minimizedIcon.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Chat command to open executor
+player.Chatted:Connect(function(message)
+    if message:match("^;execute") then
+        screenGui.Enabled = not screenGui.Enabled
+    end
+end)
