@@ -1,0 +1,868 @@
+--start1 antilag
+-- LocalScript in StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
+
+-- Define the common color to reduce lag
+local commonColor = Color3.fromRGB(150, 150, 150) -- Neutral gray color
+
+-- Function to simplify the appearance of parts
+local function simplifyParts()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            -- Set the part's color to the common color
+            obj.Color = commonColor
+            obj.Material = Enum.Material.SmoothPlastic -- Simplify material to smooth plastic
+            obj.Reflectance = 0 -- Remove any reflectance
+
+            -- Remove any textures, decals, or surface appearances
+            for _, child in pairs(obj:GetChildren()) do
+                if child:IsA("Texture") or child:IsA("Decal") or child:IsA("SurfaceAppearance") then
+                    child:Destroy()
+                end
+            end
+        end
+    end
+end
+
+-- Function to handle chat commands
+local function onChatted(message)
+    local args = message:split(" ")
+    local command = args[1]:lower()
+
+    if command == ";antilag" then
+        simplifyParts()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Anti-Lag Activated";
+            Text = "All objects simplified to reduce lag.";
+            Duration = 5;
+        })
+    end
+end
+
+-- Connect chat listener
+player.Chatted:Connect(onChatted)
+--start2 bringobject ,glitch2
+-- LocalScript
+
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local glitching = false
+local glitchConnection
+
+-- Function to start the glitch effect
+local function startGlitchEffect()
+    if not glitching then
+        glitching = true
+        glitchConnection = RunService.RenderStepped:Connect(function()
+            local character = Player.Character
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local randomOffset = Vector3.new(
+                    math.random(-1, 1),
+                    math.random(-1, 1),
+                    math.random(-1, 1)
+                ) * 0.5 -- Adjust the multiplier to control the intensity of the shake
+
+                character:SetPrimaryPartCFrame(character.PrimaryPart.CFrame * CFrame.new(randomOffset))
+            end
+        end)
+    end
+end
+
+-- Function to stop the glitch effect
+local function stopGlitchEffect()
+    if glitching then
+        glitching = false
+        if glitchConnection then
+            glitchConnection:Disconnect()
+            glitchConnection = nil
+        end
+    end
+end
+
+-- Function to bring an object in front of the player
+local function bringObject(objectName)
+    for _, object in pairs(Workspace:GetDescendants()) do
+        if object:IsA("BasePart") and object.Name:lower():sub(1, #objectName) == objectName then
+            object.CFrame = Player.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5) -- Places object 5 studs in front of the player
+        end
+    end
+end
+
+-- Function to handle chat commands
+local function onChatted(message)
+    local args = message:split(" ")
+    local command = args[1]:lower()
+
+    if command == ";glitch2" then
+        startGlitchEffect()
+        print("Glitch effect started.")
+
+    elseif command == ";unglitch2" then
+        stopGlitchEffect()
+        print("Glitch effect stopped.")
+
+    elseif command == ";bringobj" and args[2] then
+        local objectName = args[2]:lower()
+        bringObject(objectName)
+        print("Attempted to bring object(s) named: " .. objectName)
+    end
+end
+
+-- Connect chat listener
+Player.Chatted:Connect(onChatted)
+--start3
+--daynight
+-- LocalScript in StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+local Lighting = game:GetService("Lighting")
+
+-- Store original lighting settings
+local originalLighting = {
+    Ambient = Lighting.Ambient,
+    Brightness = Lighting.Brightness,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    TimeOfDay = Lighting.TimeOfDay
+}
+
+-- Function to create dynamic lighting effect
+local function createDynamicLighting(radius, brightness)
+    local light = Instance.new("PointLight")
+    light.Parent = Lighting
+    light.Range = radius
+    light.Brightness = brightness
+    light.Enabled = true
+end
+
+-- Function to remove dynamic lighting effect
+local function removeDynamicLighting()
+    for _, child in pairs(Lighting:GetChildren()) do
+        if child:IsA("PointLight") then
+            child:Destroy()
+        end
+    end
+end
+
+-- Function to set time of day
+local function setTimeOfDay(time)
+    Lighting.TimeOfDay = time
+end
+
+-- Handle chat commands
+local function onChatted(message)
+    local args = message:split(" ")
+    local command = args[1]:lower()
+
+    if command == ";light" then
+        if #args >= 3 then
+            local radius = tonumber(args[2])
+            local brightness = tonumber(args[3])
+            if radius and brightness then
+                removeDynamicLighting()  -- Remove existing lights before adding new ones
+                createDynamicLighting(radius, brightness)
+                print("Lighting effect set with radius " .. radius .. " and brightness " .. brightness)
+            else
+                print("Invalid radius or brightness value.")
+            end
+        else
+            print("Please provide both radius and brightness.")
+        end
+    elseif command == ";day" then
+        setTimeOfDay("14:00:00")  -- Set to 2 PM for daylight
+        print("Time set to day.")
+    elseif command == ";night" then
+        setTimeOfDay("02:00:00")  -- Set to 2 AM for nighttime
+        print("Time set to night.")
+    end
+end
+
+-- Connect chat listener
+Player.Chatted:Connect(onChatted)
+
+-- Ensure lighting settings persist after player reset
+Player.CharacterAdded:Connect(function()
+    wait(1) -- Wait for the character to fully load
+    if Lighting then
+        -- Reapply original lighting settings
+        Lighting.Ambient = originalLighting.Ambient
+        Lighting.Brightness = originalLighting.Brightness
+        Lighting.OutdoorAmbient = originalLighting.OutdoorAmbient
+        Lighting.TimeOfDay = originalLighting.TimeOfDay
+    end
+end)
+--start4
+--esp invisible 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local espEnabled = false
+local highlightedObjects = {}
+
+-- Function to create ESP for non-visible objects
+local function createESP(object)
+    local billboard = Instance.new("BillboardGui")
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Adornee = object
+    billboard.Parent = playerGui
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    textLabel.TextStrokeTransparency = 0
+    textLabel.Text = object.Name
+    textLabel.Parent = billboard
+
+    return billboard
+end
+
+-- Function to update ESP for non-visible objects
+local function updateESP()
+    if not espEnabled then return end
+
+    -- Clear previous highlights
+    for _, billboard in ipairs(highlightedObjects) do
+        billboard:Destroy()
+    end
+    highlightedObjects = {}
+
+    -- Iterate through all objects and apply ESP to non-visible ones
+    for _, object in ipairs(workspace:GetDescendants()) do
+        if object:IsA("BasePart") and object.Transparency > 0.5 then
+            local billboard = createESP(object)
+            table.insert(highlightedObjects, billboard)
+        end
+    end
+end
+
+-- Command functions
+local function enableESP()
+    if espEnabled then return end
+    espEnabled = true
+    updateESP()
+end
+
+local function disableESP()
+    if not espEnabled then return end
+    espEnabled = false
+
+    -- Clear all highlighted objects
+    for _, billboard in ipairs(highlightedObjects) do
+        billboard:Destroy()
+    end
+    highlightedObjects = {}
+end
+
+-- Handle chat commands
+local function handleCommand(command)
+    if command == ";espnonvisibleobj" or command == ";envo" then
+        enableESP()
+    elseif command == ";offenvo" then
+        disableESP()
+    else
+        print("Unknown command")
+    end
+end
+
+-- Listen for chat messages
+local function onChatMessage(message)
+    if message:sub(1, 1) == ";" then
+        handleCommand(message)
+    end
+end
+
+player.Chatted:Connect(onChatMessage)
+--start5
+--flip
+local player = game.Players.LocalPlayer
+
+-- Function to perform a backflip
+local function performBackflip()
+    local character = player.Character
+    if not character then return end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    -- Ensure the character is grounded
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.Health > 0 then
+        -- Create a BodyGyro to handle the rotation
+        local bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.CFrame = humanoidRootPart.CFrame
+        bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)  -- Allow large rotational force
+        bodyGyro.P = 3000  -- High power for strong rotational control
+        bodyGyro.Parent = humanoidRootPart
+
+        -- Create a BodyVelocity to apply upward force
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.Velocity = Vector3.new(0, 50, 0)  -- Apply upward force
+        bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)  -- Allow large force in the upward direction
+        bodyVelocity.P = 3000  -- High power for strong force
+        bodyVelocity.Parent = humanoidRootPart
+
+        -- Tween to rotate 360 degrees around the X-axis
+        local tweenService = game:GetService("TweenService")
+        local tweenInfo = TweenInfo.new(3, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut)  -- Duration of 3 seconds
+        local goalCFrame = humanoidRootPart.CFrame * CFrame.Angles(math.rad(360), 0, 0)
+        local tween = tweenService:Create(humanoidRootPart, tweenInfo, {CFrame = goalCFrame})
+
+        tween:Play()
+        tween.Completed:Connect(function()
+            -- Clean up BodyGyro and BodyVelocity after rotation is complete
+            bodyGyro:Destroy()
+            bodyVelocity:Destroy()
+        end)
+    end
+end
+
+-- Listen for chat commands
+player.Chatted:Connect(function(message)
+    if message:lower() == ";flip" then
+        performBackflip()
+    end
+end)
+--start6
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Variables
+local player = Players.LocalPlayer
+local swimming = false
+local oldgrav
+local gravReset
+local swimbeat
+
+-- Function to start swimming
+local function startSwimming()
+    if not swimming and player and player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then
+        oldgrav = Workspace.Gravity
+        Workspace.Gravity = 0
+
+        local swimDied = function()
+            Workspace.Gravity = oldgrav
+            swimming = false
+        end
+
+        local humanoid = player.Character:FindFirstChildWhichIsA("Humanoid")
+        gravReset = humanoid.Died:Connect(swimDied)
+
+        local enums = Enum.HumanoidStateType:GetEnumItems()
+        table.remove(enums, table.find(enums, Enum.HumanoidStateType.None))
+        for _, state in pairs(enums) do
+            humanoid:SetStateEnabled(state, false)
+        end
+
+        humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+
+        swimbeat = RunService.Heartbeat:Connect(function()
+            pcall(function()
+                player.Character.HumanoidRootPart.Velocity = 
+                    ((humanoid.MoveDirection ~= Vector3.new() or UserInputService:IsKeyDown(Enum.KeyCode.Space))
+                    and player.Character.HumanoidRootPart.Velocity or Vector3.new())
+            end)
+        end)
+
+        swimming = true
+    end
+end
+
+-- Function to stop swimming
+local function stopSwimming()
+    if player and player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then
+        Workspace.Gravity = oldgrav
+        swimming = false
+
+        if gravReset then
+            gravReset:Disconnect()
+        end
+
+        if swimbeat then
+            swimbeat:Disconnect()
+            swimbeat = nil
+        end
+
+        local humanoid = player.Character:FindFirstChildWhichIsA("Humanoid")
+        local enums = Enum.HumanoidStateType:GetEnumItems()
+        table.remove(enums, table.find(enums, Enum.HumanoidStateType.None))
+        for _, state in pairs(enums) do
+            humanoid:SetStateEnabled(state, true)
+        end
+    end
+end
+
+-- Handle chat commands
+local function onChatted(message)
+    local args = message:split(" ")
+    local command = args[1]:lower()
+
+    if command == ";fly" then
+        startSwimming()
+    elseif command == ";unfly" then
+        stopSwimming()
+    end
+end
+
+-- Connect chat listener
+player.Chatted:Connect(onChatted)
+
+-- Services
+local Players = game:GetService("Players")
+
+-- Variables
+local player = Players.LocalPlayer
+local defaultSpeed = 16  -- Default walk speed
+local boostedSpeed = 120 -- Boosted walk speed
+
+-- Function to boost speed
+local function boostSpeed()
+    if player and player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then
+        player.Character:FindFirstChildWhichIsA("Humanoid").WalkSpeed = boostedSpeed
+    end
+end
+
+-- Function to reset speed
+local function resetSpeed()
+    if player and player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then
+        player.Character:FindFirstChildWhichIsA("Humanoid").WalkSpeed = defaultSpeed
+    end
+end
+
+-- Handle chat commands
+local function onChatted(message)
+    local command = message:lower()
+
+    if command == ";fly" then
+        boostSpeed()
+    elseif command == ";unfly" then
+        resetSpeed()
+    end
+end
+
+-- Connect chat listener
+player.Chatted:Connect(onChatted)
+-- Services
+local Players = game:GetService("Players")
+
+-- Variables
+local player = Players.LocalPlayer
+local humanoid = player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
+local animateScript
+
+-- Function to disable animations
+local function disableAnimations()
+    if humanoid and player.Character then
+        animateScript = player.Character:FindFirstChild("Animate")
+        if animateScript then
+            animateScript.Disabled = true
+        end
+    end
+end
+
+-- Function to enable animations
+local function enableAnimations()
+    if animateScript and humanoid and player.Character then
+        animateScript.Disabled = false
+    end
+end
+
+-- Handle chat commands
+local function onChatted(message)
+    local command = message:lower()
+
+    if command == ";fly" then
+        disableAnimations()
+    elseif command == ";unfly" then
+        enableAnimations()
+    end
+end
+
+-- Connect chat listener
+player.Chatted:Connect(onChatted)
+-- Services
+local Players = game:GetService("Players")
+
+-- Variables
+local player = Players.LocalPlayer
+local humanoid = player.Character and player.Character:FindFirstChildWhichIsA("Humanoid")
+local originalWalkSpeed = humanoid and humanoid.WalkSpeed or 16
+
+-- Function to set player speed
+local function setPlayerSpeed(speed)
+    if humanoid then
+        humanoid.WalkSpeed = speed
+    end
+end
+
+-- Function to reset player speed
+local function resetPlayerSpeed()
+    if humanoid then
+        humanoid.WalkSpeed = originalWalkSpeed
+    end
+end
+
+-- Handle chat commands
+local function onChatted(message)
+    local args = message:split(" ")
+    local command = args[1]:lower()
+
+    if command == ";fly" and tonumber(args[2]) then
+        setPlayerSpeed(tonumber(args[2]))
+    elseif command == ";unfly" then
+        resetPlayerSpeed()
+    end
+end
+
+-- Connect chat listener
+player.Chatted:Connect(onChatted)
+
+--start7
+--follow
+local player = game.Players.LocalPlayer
+local targetPlayer = nil
+local sticking = false
+
+-- Function to find a player by partial name
+local function findPlayer(partialName)
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p.Name:lower():sub(1, #partialName) == partialName:lower() then
+            return p
+        end
+    end
+    return nil
+end
+
+-- Function to start sticking to the target player
+local function startSticking(targetName)
+    local character = player.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    -- Find the target player by partial name
+    targetPlayer = findPlayer(targetName)
+    if not targetPlayer or targetPlayer == player then
+        print("Target player not found or same as self.")
+        return
+    end
+    
+    local targetCharacter = targetPlayer.Character
+    if not targetCharacter then return end
+    
+    local targetHumanoidRootPart = targetCharacter:FindFirstChild("HumanoidRootPart")
+    if not targetHumanoidRootPart then return end
+
+    sticking = true
+
+    while sticking do
+        if not targetCharacter or not targetHumanoidRootPart then
+            stopSticking()
+            return
+        end
+
+        -- Set the player's position to match the target's position
+        humanoidRootPart.CFrame = targetHumanoidRootPart.CFrame
+
+        wait(0.1) -- Adjust time to control the smoothness of sticking
+    end
+end
+
+-- Function to stop sticking to the target
+local function stopSticking()
+    sticking = false
+end
+
+-- Listen for chat commands
+player.Chatted:Connect(function(message)
+    local command, targetName = message:match("^(;follow) (.+)$")
+    if command and targetName then
+        startSticking(targetName)
+    end
+    
+    if message:lower() == ";unfollow" then
+        stopSticking()
+    end
+end)
+
+-- Reinitialize after player reset or death
+player.CharacterAdded:Connect(function(character)
+    if sticking and targetPlayer then
+        startSticking(targetPlayer.Name)
+    end
+end)
+
+--start8 
+--fov
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local originalFOV = camera.FieldOfView
+local showingFPS = false
+local fpsLabel = nil
+
+-- Function to set the field of view
+local function setFOV(value)
+    local num = tonumber(value)
+    if num then
+        camera.FieldOfView = num
+    else
+        print("Invalid FOV value")
+    end
+end
+
+-- Function to reset the field of view
+local function resetFOV()
+    camera.FieldOfView = originalFOV
+end
+
+-- Function to show FPS
+local function showFPS()
+    if showingFPS then return end
+    showingFPS = true
+
+    fpsLabel = Instance.new("TextLabel")
+    fpsLabel.Size = UDim2.new(0, 100, 0, 50)
+    fpsLabel.Position = UDim2.new(0, 10, 0, 10)
+    fpsLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    fpsLabel.BackgroundTransparency = 0.5
+    fpsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fpsLabel.TextStrokeTransparency = 0.7
+    fpsLabel.TextSize = 18
+    fpsLabel.Parent = player:WaitForChild("PlayerGui")
+
+    local frameCount = 0
+    local timeElapsed = 0
+
+    local function updateFPS()
+        while showingFPS do
+            frameCount = frameCount + 1
+            timeElapsed = timeElapsed + RunService.RenderStepped:Wait()
+
+            if timeElapsed >= 1 then
+                local fps = frameCount / timeElapsed
+                fpsLabel.Text = "FPS: " .. math.floor(fps)
+                frameCount = 0
+                timeElapsed = 0
+            end
+        end
+    end
+
+    coroutine.wrap(updateFPS)()
+end
+
+-- Function to hide FPS
+local function hideFPS()
+    if not showingFPS then return end
+    showingFPS = false
+    if fpsLabel then
+        fpsLabel:Destroy()
+    end
+end
+
+-- Handle commands
+local function handleCommand(command)
+    local args = command:split(" ")
+    local cmd = args[1]
+    
+    if cmd == ";fov" and args[2] then
+        setFOV(args[2])
+    elseif cmd == ";fovreset" then
+        resetFOV()
+    elseif cmd == ";fps" then
+        showFPS()
+    elseif cmd == ";hidefps" then
+        hideFPS()
+    else
+        print("Unknown command")
+    end
+end
+
+-- Listen for chat messages
+local function onChatMessage(message)
+    if message:sub(1, 1) == ";" then
+        handleCommand(message)
+    end
+end
+
+player.Chatted:Connect(onChatMessage)
+
+--start9
+--glitch
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local teleportPoints = {}
+local teleporting = false
+local screenGui
+local mainFrame
+
+-- Function to create or get the GlitchEffectGUI
+local function getOrCreateGlitchGUI()
+    local gui = player:FindFirstChild("PlayerGui"):FindFirstChild("GlitchEffectGUI")
+    if not gui then
+        gui = Instance.new("ScreenGui")
+        gui.Name = "GlitchEffectGUI"
+        gui.ResetOnSpawn = false
+        gui.Parent = player:WaitForChild("PlayerGui")
+
+        -- Create main frame
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 300, 0, 400)
+        frame.Position = UDim2.new(0.5, -150, 0.5, -200)
+        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        frame.Parent = gui
+        mainFrame = frame
+
+        -- Create teleport points frame
+        local pointsFrame = Instance.new("ScrollingFrame")
+        pointsFrame.Size = UDim2.new(1, 0, 0.8, 0)
+        pointsFrame.Position = UDim2.new(0, 0, 0, 0)
+        pointsFrame.CanvasSize = UDim2.new(0, 0, 5, 0)
+        pointsFrame.ScrollBarThickness = 8
+        pointsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        pointsFrame.Parent = frame
+
+        -- Create add point button
+        local addPointButton = Instance.new("TextButton")
+        addPointButton.Size = UDim2.new(0.5, -5, 0.1, -5)
+        addPointButton.Position = UDim2.new(0, 5, 0.9, -5)
+        addPointButton.Text = "Add Point"
+        addPointButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        addPointButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        addPointButton.Parent = frame
+
+        -- Create glitch button
+        local glitchButton = Instance.new("TextButton")
+        glitchButton.Size = UDim2.new(0.5, -5, 0.1, -5)
+        glitchButton.Position = UDim2.new(0.5, 5, 0.9, -5)
+        glitchButton.Text = "Glitch"
+        glitchButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        glitchButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        glitchButton.Parent = frame
+
+        -- Create close button
+        local closeButton = Instance.new("TextButton")
+        closeButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+        closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+        closeButton.Text = "Close"
+        closeButton.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeButton.Parent = frame
+
+        -- Function to add a teleport point
+        local function addTeleportPoint()
+            local point = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
+            if point then
+                table.insert(teleportPoints, point)
+
+                local pointLabel = Instance.new("TextLabel")
+                pointLabel.Size = UDim2.new(1, 0, 0, 30)
+                pointLabel.Text = tostring(point)
+                pointLabel.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+                pointLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                pointLabel.Parent = pointsFrame
+            end
+        end
+
+        -- Function to start glitch effect
+        local function startGlitchEffect()
+            teleporting = not teleporting
+            if teleporting then
+                glitchButton.Text = "Stop Glitch"
+            else
+                glitchButton.Text = "Glitch"
+            end
+
+            while teleporting do
+                for _, point in ipairs(teleportPoints) do
+                    if not teleporting then break end
+                    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        player.Character.HumanoidRootPart.CFrame = CFrame.new(point)
+                    end
+                    RunService.Heartbeat:Wait() -- This waits for the next frame
+                end
+            end
+        end
+
+        -- Function to close the glitch UI
+        local function closeGlitchUI()
+            gui:Destroy()
+        end
+
+        -- Make the frame draggable
+        local function makeFrameDraggable(frame)
+            local dragging = false
+            local dragStart = nil
+            local startPos = nil
+
+            local function update(input)
+                local delta = input.Position - dragStart
+                frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+
+            frame.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    dragStart = input.Position
+                    startPos = frame.Position
+
+                    input.Changed:Connect(function()
+                        if input.UserInputState == Enum.UserInputState.End then
+                            dragging = false
+                        end
+                    end)
+                end
+            end)
+
+            frame.InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                    if dragging then
+                        update(input)
+                    end
+                end
+            end)
+        end
+
+        -- Make the main frame draggable
+        makeFrameDraggable(frame)
+
+        -- Event listeners
+        addPointButton.MouseButton1Click:Connect(addTeleportPoint)
+        glitchButton.MouseButton1Click:Connect(startGlitchEffect)
+        closeButton.MouseButton1Click:Connect(closeGlitchUI)
+    end
+    return gui
+end
+
+-- Function to handle commands
+local function onChatted(message)
+    if message:lower() == ";glitch" then
+        getOrCreateGlitchGUI() -- Show the glitch UI
+    elseif message:lower() == ";closeglitch" then
+        local gui = player:FindFirstChild("PlayerGui"):FindFirstChild("GlitchEffectGUI")
+        if gui then
+            gui:Destroy() -- Close the glitch UI
+        end
+    end
+end
+
+-- Connect the chat function to the player's Chatted event
+player.Chatted:Connect(onChatted)
