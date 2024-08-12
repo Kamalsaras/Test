@@ -1,0 +1,754 @@
+-- Initialize the menu UI
+local function createMenu()
+    local player = game.Players.LocalPlayer
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.ResetOnSpawn = false -- Ensures UI stays after player respawn
+    screenGui.Parent = game:GetService("CoreGui") -- Parent to CoreGui for persistence
+
+    -- Create the main menu frame
+    local menuFrame = Instance.new("Frame")
+    menuFrame.Size = UDim2.new(0.5, 0, 0.6, 0)  -- Adjust size for larger menu
+    menuFrame.Position = UDim2.new(0.25, 0, 0.2, 0)  -- Centered position
+    menuFrame.BackgroundTransparency = 0.2
+    menuFrame.BorderSizePixel = 0
+    menuFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    menuFrame.Parent = screenGui
+
+    -- Create the UI gradient for the menu frame
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(30, 30, 60)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(60, 60, 90))
+    }
+    uiGradient.Rotation = 45
+    uiGradient.Parent = menuFrame
+
+    -- Create the border
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 4, 1, 4)
+    border.Position = UDim2.new(0, -2, 0, -2)
+    border.ZIndex = menuFrame.ZIndex - 1
+    border.Parent = menuFrame
+
+    local borderGradient = Instance.new("UIGradient")
+    borderGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(200, 200, 255)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(255, 200, 200))
+    }
+    borderGradient.Rotation = 45
+    borderGradient.Parent = border
+
+    -- Create the title bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0.1, 0)  -- Smaller height for title bar
+    titleBar.BackgroundTransparency = 0.3
+    titleBar.BorderSizePixel = 0
+    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
+    titleBar.Parent = menuFrame
+
+    -- Create the close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.TextSize = 24
+    closeButton.TextColor3 = Color3.new(1, 1, 1)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+    closeButton.Parent = titleBar
+
+    -- Create the minimize button
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Text = "-"
+    minimizeButton.Font = Enum.Font.SourceSansBold
+    minimizeButton.TextSize = 24
+    minimizeButton.TextColor3 = Color3.new(1, 1, 1)
+    minimizeButton.BackgroundTransparency = 1
+    minimizeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    minimizeButton.Position = UDim2.new(0.8, 0, 0, 0)
+    minimizeButton.Parent = titleBar
+
+    -- Create the menu title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(0.8, 0, 1, 0)
+    titleLabel.Position = UDim2.new(0.1, 0, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "ChatBlox - Menu"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 24
+    titleLabel.TextColor3 = Color3.new(1, 1, 1)
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+    titleLabel.Parent = titleBar
+
+    -- Create the content frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, 0, 0.9, 0)  -- Full width, 90% height
+    contentFrame.Position = UDim2.new(0, 0, 0.1, 0)  -- Below the title bar
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = menuFrame
+
+    -- Create the left container for buttons
+    local leftContainer = Instance.new("Frame")
+    leftContainer.Size = UDim2.new(0.25, 0, 1, 0)  -- 25% width
+    leftContainer.Position = UDim2.new(0, 0, 0, 0)
+    leftContainer.BackgroundTransparency = 1
+    leftContainer.Parent = contentFrame
+
+    -- Create the "Commands" button
+    local commandsButton = Instance.new("TextButton")
+    commandsButton.Size = UDim2.new(1, 0, 0.1, 0)
+    commandsButton.Position = UDim2.new(0, 0, 0, 0)
+    commandsButton.Text = "Commands"
+    commandsButton.Font = Enum.Font.GothamBold
+    commandsButton.TextSize = 18
+    commandsButton.TextColor3 = Color3.new(1, 1, 1)
+    commandsButton.BackgroundTransparency = 0.5
+    commandsButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    commandsButton.Parent = leftContainer
+
+    -- Create the "Info" button
+    local infoButton = Instance.new("TextButton")
+    infoButton.Size = UDim2.new(1, 0, 0.1, 0)
+    infoButton.Position = UDim2.new(0, 0, 0.12, 0)
+    infoButton.Text = "Info"
+    infoButton.Font = Enum.Font.GothamBold
+    infoButton.TextSize = 18
+    infoButton.TextColor3 = Color3.new(1, 1, 1)
+    infoButton.BackgroundTransparency = 0.5
+    infoButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    infoButton.Parent = leftContainer
+
+    -- Create the divider line
+    local dividerLine = Instance.new("Frame")
+    dividerLine.Size = UDim2.new(0, 1, 1, 0)
+    dividerLine.Position = UDim2.new(0.25, 0, 0, 0)
+    dividerLine.BackgroundColor3 = Color3.new(1, 1, 1)
+    dividerLine.BackgroundTransparency = 0.8
+    dividerLine.Parent = contentFrame
+
+    -- Create the right content area
+    local rightContent = Instance.new("ScrollingFrame")
+    rightContent.Size = UDim2.new(0.7, 0, 1, 0)
+    rightContent.Position = UDim2.new(0.26, 0, 0, 0)
+    rightContent.BackgroundTransparency = 1
+    rightContent.ScrollBarThickness = 0
+    rightContent.CanvasSize = UDim2.new(0, 0, 1, 0)
+    rightContent.Parent = contentFrame
+
+    local contentList = Instance.new("UIListLayout")
+    contentList.Parent = rightContent
+
+    -- Commands list
+    local commandsList = {
+        ";fly",
+        ";unfly",
+        ";Bridge",
+        ";Unbridge",
+        ";noclip",
+        ";clip",
+        ";godmode",
+        ";speed"
+    }
+
+    -- Update commands list in rightContent
+    local function updateCommandsList()
+        rightContent:ClearAllChildren()
+        local contentList = Instance.new("UIListLayout")
+        contentList.Parent = rightContent
+        for _, cmd in ipairs(commandsList) do
+            local commandLabel = Instance.new("TextLabel")
+            commandLabel.Size = UDim2.new(1, 0, 0, 30)
+            commandLabel.Text = cmd
+            commandLabel.Font = Enum.Font.Gotham
+            commandLabel.TextSize = 18
+            commandLabel.TextColor3 = Color3.new(1, 1, 1)
+            commandLabel.BackgroundTransparency = 1
+            commandLabel.Parent = rightContent
+        end
+    end
+
+    -- Show info content
+    local function showInfoContent()
+        rightContent:ClearAllChildren()
+        
+        local infoTitle = Instance.new("TextLabel")
+        infoTitle.Size = UDim2.new(1, 0, 0, 30)
+        infoTitle.Text = "Hi there! This script is developed by ChatBlox team and CanOneBeLucky. All donations are appreciated and help us further improve our services. To donate, type ;donate in chat."
+        infoTitle.Font = Enum.Font.Gotham
+        infoTitle.TextSize = 18
+        infoTitle.TextColor3 = Color3.new(1, 1, 1)
+        infoTitle.BackgroundTransparency = 1
+        infoTitle.TextWrapped = true
+        infoTitle.Parent = rightContent
+
+        -- Create the "Join Discord" button
+        local discordButton = Instance.new("TextButton")
+        discordButton.Size = UDim2.new(1, 0, 0, 40)
+        discordButton.Position = UDim2.new(0, 0, 0.2, 0)
+        discordButton.Text = "Join Discord"
+        discordButton.Font = Enum.Font.GothamBold
+        discordButton.TextSize = 18
+        discordButton.TextColor3 = Color3.new(1, 1, 1)
+        discordButton.BackgroundTransparency = 0.5
+        discordButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        discordButton.Parent = rightContent
+
+        discordButton.MouseButton1Click:Connect(function()
+            -- Copy Discord link to clipboard
+            setclipboard("www.discord.com")
+            -- Notify the user
+            local notification = Instance.new("TextLabel")
+            notification.Text = "Link copied to clipboard!"
+            notification.Font = Enum.Font.Gotham
+            notification.TextSize = 18
+            notification.TextColor3 = Color3.new(1, 1, 1)
+            notification.BackgroundTransparency = 0.5
+            notification.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            notification.Size = UDim2.new(0.3, 0, 0.1, 0)
+            notification.Position = UDim2.new(0.35, 0, 0.45, 0)
+            notification.Parent = screenGui
+            wait(1)
+            notification:Destroy()
+        end)
+    end
+
+    -- Set button click handlers
+    closeButton.MouseButton1Click:Connect(function()
+        menuFrame.Visible = false
+        showNotification("UI closed.")
+    end)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        menuFrame.Visible = false
+        local uiButton = Instance.new("TextButton")
+        uiButton.Text = "UI"
+        uiButton.Font = Enum.Font.SourceSansBold
+        uiButton.TextSize = 18
+        uiButton.TextColor3 = Color3.new(1, 1, 1)
+        uiButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        uiButton.BackgroundTransparency = 0.5
+        uiButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+        uiButton.Position = UDim2.new(0, 10, 0, 10)
+        uiButton.Parent = screenGui
+
+        uiButton.MouseButton1Click:Connect(function()
+            menuFrame.Visible = true
+            uiButton:Destroy()
+        end)
+    end)
+
+    -- Set button click handlers for commands
+    commandsButton.MouseButton1Click:Connect(updateCommandsList)
+    infoButton.MouseButton1Click:Connect(showInfoContent)
+
+    -- Initial display of commands list
+    updateCommandsList()
+end
+
+-- Ensure the UI persists after the player dies or resets
+local function onCharacterAdded(character)
+    createMenu()
+end
+
+local player = game.Players.LocalPlayer
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Initial setup for the first character spawn
+if player.Character then
+    onCharacterAdded(player.Character)
+else
+    player.CharacterAdded:Wait()
+    onCharacterAdded(player.Character)
+end
+
+
+
+
+-- notifications
+-- Initialize the menu UI
+local function createMenu()
+    local player = game.Players.LocalPlayer
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.ResetOnSpawn = false -- Ensures UI stays after player respawn
+    screenGui.Parent = game:GetService("CoreGui") -- Parent to CoreGui for persistence
+
+    -- Create the main menu frame
+    local menuFrame = Instance.new("Frame")
+    menuFrame.Size = UDim2.new(0.5, 0, 0.6, 0)  -- Adjust size for larger menu
+    menuFrame.Position = UDim2.new(0.25, 0, 0.2, 0)  -- Centered position
+    menuFrame.BackgroundTransparency = 0.2
+    menuFrame.BorderSizePixel = 0
+    menuFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    menuFrame.Parent = screenGui
+
+    -- Create the UI gradient for the menu frame
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(30, 30, 60)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(60, 60, 90))
+    }
+    uiGradient.Rotation = 45
+    uiGradient.Parent = menuFrame
+
+    -- Create the border
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 4, 1, 4)
+    border.Position = UDim2.new(0, -2, 0, -2)
+    border.ZIndex = menuFrame.ZIndex - 1
+    border.Parent = menuFrame
+
+    local borderGradient = Instance.new("UIGradient")
+    borderGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(200, 200, 255)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(255, 200, 200))
+    }
+    borderGradient.Rotation = 45
+    borderGradient.Parent = border
+
+    -- Create the title bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0.1, 0)  -- Smaller height for title bar
+    titleBar.BackgroundTransparency = 0.3
+    titleBar.BorderSizePixel = 0
+    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
+    titleBar.Parent = menuFrame
+
+    -- Create the close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.TextSize = 24
+    closeButton.TextColor3 = Color3.new(1, 1, 1)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+    closeButton.Parent = titleBar
+
+    -- Create the minimize button
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Text = "-"
+    minimizeButton.Font = Enum.Font.SourceSansBold
+    minimizeButton.TextSize = 24
+    minimizeButton.TextColor3 = Color3.new(1, 1, 1)
+    minimizeButton.BackgroundTransparency = 1
+    minimizeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    minimizeButton.Position = UDim2.new(0.8, 0, 0, 0)
+    minimizeButton.Parent = titleBar
+
+    -- Create the menu title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(0.8, 0, 1, 0)
+    titleLabel.Position = UDim2.new(0.1, 0, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "ChatBlox - Menu"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 24
+    titleLabel.TextColor3 = Color3.new(1, 1, 1)
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+    titleLabel.Parent = titleBar
+
+    -- Create the content frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, 0, 0.9, 0)  -- Full width, 90% height
+    contentFrame.Position = UDim2.new(0, 0, 0.1, 0)  -- Below the title bar
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = menuFrame
+
+    -- Create the left container for buttons
+    local leftContainer = Instance.new("Frame")
+    leftContainer.Size = UDim2.new(0.25, 0, 1, 0)  -- 25% width
+    leftContainer.Position = UDim2.new(0, 0, 0, 0)
+    leftContainer.BackgroundTransparency = 1
+    leftContainer.Parent = contentFrame
+
+    -- Create the "Commands" button
+    local commandsButton = Instance.new("TextButton")
+    commandsButton.Size = UDim2.new(1, 0, 0.1, 0)
+    commandsButton.Position = UDim2.new(0, 0, 0, 0)
+    commandsButton.Text = "Commands"
+    commandsButton.Font = Enum.Font.GothamBold
+    commandsButton.TextSize = 18
+    commandsButton.TextColor3 = Color3.new(1, 1, 1)
+    commandsButton.BackgroundTransparency = 0.5
+    commandsButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    commandsButton.Parent = leftContainer
+
+    -- Create the "Info" button
+    local infoButton = Instance.new("TextButton")
+    infoButton.Size = UDim2.new(1, 0, 0.1, 0)
+    infoButton.Position = UDim2.new(0, 0, 0.12, 0)
+    infoButton.Text = "Info"
+    infoButton.Font = Enum.Font.GothamBold
+    infoButton.TextSize = 18
+    infoButton.TextColor3 = Color3.new(1, 1, 1)
+    infoButton.BackgroundTransparency = 0.5
+    infoButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    infoButton.Parent = leftContainer
+
+    -- Create the divider line
+    local dividerLine = Instance.new("Frame")
+    dividerLine.Size = UDim2.new(0, 1, 1, 0)
+    dividerLine.Position = UDim2.new(0.25, 0, 0, 0)
+    dividerLine.BackgroundColor3 = Color3.new(1, 1, 1)
+    dividerLine.BackgroundTransparency = 0.8
+    dividerLine.Parent = contentFrame
+
+    -- Create the right content area
+    local rightContent = Instance.new("ScrollingFrame")
+    rightContent.Size = UDim2.new(0.7, 0, 1, 0)
+    rightContent.Position = UDim2.new(0.26, 0, 0, 0)
+    rightContent.BackgroundTransparency = 1
+    rightContent.ScrollBarThickness = 0
+    rightContent.CanvasSize = UDim2.new(0, 0, 100, 0)
+    rightContent.Parent = contentFrame
+
+    local contentList = Instance.new("UIListLayout")
+    contentList.Parent = rightContent
+
+    -- Commands list
+local commandsList = {
+	"Note: Use ;commands to view",
+    "available commands",
+	"Note: donetions help us improve",
+    "our services",
+	"view donetion options by typing ;donate",
+	"Note: this script is made by",
+    "CanOneBeLucky",
+	"List of Commands",
+	"Note: its recommended to use ;commands",
+	"to view them better",
+	"Command List : ",
+	";commands",
+    ";playerlist",
+    ";openmenu",
+    ";closemenu",
+    ";tp <username>",
+    ";list",
+    ";execute",
+    ";stats",
+    ";info <username>",
+    ";serverage",
+    ";esp",
+    ";esp off",
+    ";bring <username>",
+    ";brall",
+    ";undobrall",
+    ";jumpboost",
+    ";bridge",
+    ";bridgeclear",
+    ";lookitem",
+    ";checkinv <username>",
+    ";flashstep on",
+    ";flashstep off",
+    ";object esp on",
+    ";object esp off",
+    ";wall on",
+    ";wall off",
+    ";spectate <username>",
+    ";spectate end",
+    ";clone <username>",
+    ";set point",
+    ";teleport to point",
+    ";walkthrough",
+    ";walkthrough off",
+    ";scale",
+    ";disablescale",
+    ";spin <speed>",
+    ";unspin",
+    ";fling",
+    ";noclip",
+    ";clip",
+    ";flip",
+    ";swim",
+    ";unswim",
+    ";teleport",
+    ";fly",
+    ";fly <speed>",
+    ";unfly",
+    ";hop",
+    ";rejoin",
+    ";kickself",
+    ";glitch",
+    ";closeglitch",
+    ";unglitch",
+    ";revolve <username>",
+    ";unrevolve",
+    ";searchobject",
+    ";follow <username>",
+    ";unfollow",
+    ";reset",
+    ";antilag",
+    ";roleinfo <username>",
+    ";espnonvisibleobj",
+    ";envo",
+    ";offenvo",
+    ";light <radius> <strength>",
+    ";setp",
+    ";tpp",
+    ";objecttp <objectname>",
+    ";jumpscare <username>",
+    ";savegame",
+    ";gravity <force>",
+    ";night",
+    ";day",
+    ";coordinates",
+    ";offcoordinates",
+    ";fill <x> <y> <z> platform",
+    ";fill <x> <y> <z> water",
+    ";fov <value>",
+    ";fovreset",
+    ";xray on",
+    ";xray off",
+    ";jump <value>",
+    ";speed <value>",
+    ";health <value>",
+    ";resetstats",
+    ";hitbox <username> <size>",
+    ";hitboxall <size>",
+    ";glitch2",
+    ";unglitch2",
+    ";bringobj <object name>",
+    ";pt",
+    ";pt off",
+    ";fog <density>",
+    ";fogclear",
+    ";fogcolor <color>",
+    ";shake <intensity>",
+    ";stopshake",
+    ";donate",
+    ";wallwalk on",
+    ";wallwalk off"
+}
+
+    -- Update commands list in rightContent
+    local function updateCommandsList()
+        rightContent:ClearAllChildren()
+        local contentList = Instance.new("UIListLayout")
+        contentList.Parent = rightContent
+        for _, cmd in ipairs(commandsList) do
+            local commandLabel = Instance.new("TextLabel")
+            commandLabel.Size = UDim2.new(1, 0, 0, 30)
+            commandLabel.Text = cmd
+            commandLabel.Font = Enum.Font.Gotham
+            commandLabel.TextSize = 18
+            commandLabel.TextColor3 = Color3.new(1, 1, 1)
+            commandLabel.BackgroundTransparency = 1
+            commandLabel.Parent = rightContent
+        end
+    end
+
+    -- Show info content
+    local function showInfoContent()
+        rightContent:ClearAllChildren()
+        
+        local infoTitle = Instance.new("TextLabel")
+        infoTitle.Size = UDim2.new(1, 0, 0, 30)
+        infoTitle.Text = "Hi there! This script is developed by ChatBlox\n team and CanOneBeLucky.
+\n All donations are appreciated and help us further improve our services.\nTo donate, type ;donate in chat."
+        infoTitle.Font = Enum.Font.Gotham
+        infoTitle.TextSize = 12
+        infoTitle.TextColor3 = Color3.new(1, 1, 1)
+        infoTitle.BackgroundTransparency = 1
+        infoTitle.TextWrapped = true
+        infoTitle.Parent = rightContent
+
+        -- Create the "Join Discord" button
+        local discordButton = Instance.new("TextButton")
+        discordButton.Size = UDim2.new(1, 0, 0, 40)
+        discordButton.Position = UDim2.new(0, 0, 0.2, 0)
+        discordButton.Text = "Join Discord"
+        discordButton.Font = Enum.Font.GothamBold
+        discordButton.TextSize = 18
+        discordButton.TextColor3 = Color3.new(1, 1, 1)
+        discordButton.BackgroundTransparency = 0.5
+        discordButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        discordButton.Parent = rightContent
+
+        discordButton.MouseButton1Click:Connect(function()
+            -- Copy Discord link to clipboard
+            setclipboard("www.discord.com")
+            -- Notify the user
+            local notification = Instance.new("TextLabel")
+            notification.Text = "Link copied to clipboard!"
+            notification.Font = Enum.Font.Gotham
+            notification.TextSize = 18
+            notification.TextColor3 = Color3.new(1, 1, 1)
+            notification.BackgroundTransparency = 0.5
+            notification.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            notification.Size = UDim2.new(0.3, 0, 0.1, 0)
+            notification.Position = UDim2.new(0.35, 0, 0.45, 0)
+            notification.Parent = screenGui
+            wait(1)
+            notification:Destroy()
+        end)
+    end
+
+    -- Set button click handlers
+    closeButton.MouseButton1Click:Connect(function()
+        menuFrame.Visible = false
+        showNotification("UI closed.")
+    end)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        menuFrame.Visible = false
+        local uiButton = Instance.new("TextButton")
+        uiButton.Text = "UI"
+        uiButton.Font = Enum.Font.SourceSansBold
+        uiButton.TextSize = 18
+        uiButton.TextColor3 = Color3.new(1, 1, 1)
+        uiButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        uiButton.BackgroundTransparency = 0.5
+        uiButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+        uiButton.Position = UDim2.new(0, 10, 0, 10)
+        uiButton.Parent = screenGui
+
+        uiButton.MouseButton1Click:Connect(function()
+            menuFrame.Visible = true
+            uiButton:Destroy()
+        end)
+    end)
+
+    -- Set button click handlers for commands
+    commandsButton.MouseButton1Click:Connect(updateCommandsList)
+    infoButton.MouseButton1Click:Connect(showInfoContent)
+
+    -- Initial display of commands list
+    updateCommandsList()
+end
+
+-- Ensure the UI persists after the player dies or resets
+local function onCharacterAdded(character)
+    createMenu()
+end
+
+local player = game.Players.LocalPlayer
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Initial setup for the first character spawn
+if player.Character then
+    onCharacterAdded(player.Character)
+else
+    player.CharacterAdded:Wait()
+    onCharacterAdded(player.Character)
+end
+-- LocalScript
+
+-- Function to create notification
+local function createNotification(position, message)
+    -- Create the ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Create the Frame for the notification
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.25, 0, 0.1, 0)  -- Reduced width: 25%, height: 10% of screen size
+    frame.Position = position
+    frame.BackgroundTransparency = 0.2
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    -- Create the UIGradient for the frame background
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(50, 50, 100)),  -- Dark Blue at the top
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(100, 100, 150))   -- Dark Pink at the bottom
+    }
+    uiGradient.Rotation = 45  -- Diagonal gradient
+    uiGradient.Parent = frame
+
+    -- Create the gradient border
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 4, 1, 4)  -- Extend border beyond frame
+    border.Position = UDim2.new(0, -2, 0, -2)  -- Center border around frame
+    border.ZIndex = frame.ZIndex - 1
+    border.Parent = frame
+
+    local borderGradient = Instance.new("UIGradient")
+    borderGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(200, 200, 255)),  -- Light Blue at the top
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(255, 200, 200))   -- Light Pink at the bottom
+    }
+    borderGradient.Rotation = 45  -- Diagonal gradient
+    borderGradient.Parent = border
+
+    -- Create the top bar for the close button
+    local topBar = Instance.new("Frame")
+    topBar.Size = UDim2.new(1, 0, 0.2, 0)  -- Top bar covering 20% height
+    topBar.BackgroundTransparency = 0.3
+    topBar.BorderSizePixel = 0
+    topBar.Parent = frame
+
+    -- Create the close (×) button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.GothamBold  -- Modern font
+    closeButton.TextSize = 18
+    closeButton.TextColor3 = Color3.new(1, 1, 1)  -- White text
+    closeButton.BackgroundTransparency = 1
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)  -- Smaller button
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)  -- Positioned to the far right of the top bar
+    closeButton.Parent = topBar
+
+    -- Create the TextLabel for the notification text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 0.8, 0)  -- Cover remaining 80% height below the top bar
+    textLabel.Position = UDim2.new(0, 0, 0.2, 0)  -- Positioned below the top bar
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = message
+    textLabel.Font = Enum.Font.Gotham  -- Modern font
+    textLabel.TextSize = 16
+    textLabel.TextColor3 = Color3.new(1, 1, 1)  -- White text
+    textLabel.TextWrapped = true  -- Wrap text to fit within the box
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center
+    textLabel.TextXAlignment = Enum.TextXAlignment.Center
+    textLabel.Parent = frame
+
+    -- Create the sound effect for notification appearance
+    local appearanceSound = Instance.new("Sound")
+    appearanceSound.SoundId = "rbxassetid://18886652611"
+    appearanceSound.Volume = 1
+    appearanceSound.Parent = screenGui
+    appearanceSound:Play()
+
+    -- Create the sound effect for close button
+    local closeSound = Instance.new("Sound")
+    closeSound.SoundId = "rbxassetid://6895079853"
+    closeSound.Volume = 1
+    closeSound.Parent = screenGui
+
+    -- Opening animation: Move the frame up from off-screen to its final position
+    frame:TweenPosition(
+        position,  -- Final position
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.5,  -- Time it takes to move up
+        true
+    )
+
+    -- Close button functionality with fade-out animation
+    local function fadeOutAndDestroy()
+        for i = 1, 10 do
+            frame.BackgroundTransparency = frame.BackgroundTransparency + 0.08
+            border.BackgroundTransparency = border.BackgroundTransparency + 0.08  -- Fade the border as well
+            textLabel.TextTransparency = textLabel.TextTransparency + 0.08
+            topBar.BackgroundTransparency = topBar.BackgroundTransparency + 0.08
+            closeButton.TextTransparency = closeButton.TextTransparency + 0.08
+            wait(0.05)
+        end
+        screenGui:Destroy()
+    end
+
+    -- Trigger fade-out on close button click and play close sound
+    closeButton.MouseButton1Click:Connect(function()
+        closeSound:Play()
+        fadeOutAndDestroy()
+    end)
+
+    -- Wait for the notification to be displayed for 30 seconds, then auto-close
+    delay(30, fadeOutAndDestroy)
+end
+
+-- Trigger three notifications with adjusted spacing
+createNotification(UDim2.new(0.05, 0, 0.85, 0), "Use ;commands to view Commands")  -- Bottom left
+createNotification(UDim2.new(0.35, 0, 0.85, 0), "Type ;donate to donate us")  -- Middle
+createNotification(UDim2.new(0.65, 0, 0.85, 0), "ChatBlox loaded Successfully!")  -- Bottom right
