@@ -1,0 +1,1642 @@
+--start24
+--speed,jump,health
+-- LocalScript in StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local player = Players.LocalPlayer
+local character = player.Character
+local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+local commandPrefix = ";"
+
+-- Function to handle chat commands
+local function onChatted(message)
+    local args = message:split(" ")
+    local command = args[1]:lower()
+    
+    if command == commandPrefix .. "jump" and tonumber(args[2]) then
+        local jumpPower = tonumber(args[2])
+        if humanoid then
+            humanoid.JumpPower = jumpPower
+        end
+    elseif command == commandPrefix .. "speed" and tonumber(args[2]) then
+        local walkSpeed = tonumber(args[2])
+        if humanoid then
+            humanoid.WalkSpeed = walkSpeed
+        end
+    elseif command == commandPrefix .. "health" and tonumber(args[2]) then
+        local health = tonumber(args[2])
+        if humanoid then
+            humanoid.Health = health
+        end
+    elseif command == commandPrefix .. "resetstats" then
+        if humanoid then
+            humanoid.JumpPower = 50
+            humanoid.WalkSpeed = 16
+            humanoid.Health = 100
+        end
+    elseif command == commandPrefix .. "fill" and args[2] and args[3] and args[4] then
+        local x, y, z = tonumber(args[2]), tonumber(args[3]), tonumber(args[4])
+        local fillType = args[5]:lower()
+        if fillType == "water" then
+            local waterPart = Instance.new("Part")
+            waterPart.Size = Vector3.new(10, 10, 10)
+            waterPart.Position = Vector3.new(x, y, z)
+            waterPart.Anchored = true
+            waterPart.CanCollide = false
+            waterPart.BrickColor = BrickColor.new("Bright blue")
+            waterPart.Material = Enum.Material.Water
+            waterPart.Parent = Workspace
+        elseif fillType == "platform" then
+            local platformPart = Instance.new("Part")
+            platformPart.Size = Vector3.new(10, 1, 10)
+            platformPart.Position = Vector3.new(x, y, z)
+            platformPart.Anchored = true
+            platformPart.CanCollide = true
+            platformPart.BrickColor = BrickColor.new("Bright green")
+            platformPart.Material = Enum.Material.SmoothPlastic
+            platformPart.Parent = Workspace
+        end
+    end
+end
+
+-- Connect chat listener
+player.Chatted:Connect(onChatted)
+
+--start25
+--swim
+-- Services
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Variables
+local player = Players.LocalPlayer
+local swimming = false
+local oldgrav
+local gravReset
+local swimbeat
+
+-- Function to start swimming
+local function startSwimming()
+    if not swimming and player and player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then
+        oldgrav = Workspace.Gravity
+        Workspace.Gravity = 0
+
+        local swimDied = function()
+            Workspace.Gravity = oldgrav
+            swimming = false
+        end
+
+        local humanoid = player.Character:FindFirstChildWhichIsA("Humanoid")
+        gravReset = humanoid.Died:Connect(swimDied)
+
+        local enums = Enum.HumanoidStateType:GetEnumItems()
+        table.remove(enums, table.find(enums, Enum.HumanoidStateType.None))
+        for _, state in pairs(enums) do
+            humanoid:SetStateEnabled(state, false)
+        end
+
+        humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+
+        swimbeat = RunService.Heartbeat:Connect(function()
+            pcall(function()
+                player.Character.HumanoidRootPart.Velocity = 
+                    ((humanoid.MoveDirection ~= Vector3.new() or UserInputService:IsKeyDown(Enum.KeyCode.Space))
+                    and player.Character.HumanoidRootPart.Velocity or Vector3.new())
+            end)
+        end)
+
+        swimming = true
+    end
+end
+
+-- Function to stop swimming
+local function stopSwimming()
+    if player and player.Character and player.Character:FindFirstChildWhichIsA("Humanoid") then
+        Workspace.Gravity = oldgrav
+        swimming = false
+
+        if gravReset then
+            gravReset:Disconnect()
+        end
+
+        if swimbeat then
+            swimbeat:Disconnect()
+            swimbeat = nil
+        end
+
+        local humanoid = player.Character:FindFirstChildWhichIsA("Humanoid")
+        local enums = Enum.HumanoidStateType:GetEnumItems()
+        table.remove(enums, table.find(enums, Enum.HumanoidStateType.None))
+        for _, state in pairs(enums) do
+            humanoid:SetStateEnabled(state, true)
+        end
+    end
+end
+
+-- Handle chat commands
+local function onChatted(message)
+    local args = message:split(" ")
+    local command = args[1]:lower()
+
+    if command == ";swim" then
+        startSwimming()
+    elseif command == ";unswim" then
+        stopSwimming()
+    end
+end
+
+-- Connect chat listener
+player.Chatted:Connect(onChatted)
+
+--start26
+--xray,coordinates
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local screenGui
+local coordinatesLabel
+local xrayEnabled = false
+local originalTransparency = {}
+local xrayObjects = {}
+
+-- Function to create or get the coordinates display
+local function getOrCreateCoordinatesDisplay()
+    local gui = player:FindFirstChild("PlayerGui"):FindFirstChild("CoordinatesGUI")
+    if not gui then
+        gui = Instance.new("ScreenGui")
+        gui.Name = "CoordinatesGUI"
+        gui.ResetOnSpawn = false
+        gui.Parent = player:WaitForChild("PlayerGui")
+
+        -- Create coordinates label
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(0.2, 0, 0.1, 0)
+        label.Position = UDim2.new(0, 10, 0, 10)
+        label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        label.BackgroundTransparency = 0.5
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextScaled = true
+        label.Text = "Coordinates: N/A"
+        label.Parent = gui
+        coordinatesLabel = label
+    end
+    return gui
+end
+
+-- Function to update the coordinates label
+local function updateCoordinates()
+    if coordinatesLabel then
+        local position = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position
+        if position then
+            coordinatesLabel.Text = string.format("Coordinates: X: %.2f Y: %.2f Z: %.2f", position.X, position.Y, position.Z)
+        end
+    end
+end
+
+-- Function to apply x-ray effect
+local function applyXRayEffect(enable)
+    if enable then
+        -- Apply x-ray effect
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                if not originalTransparency[obj] then
+                    originalTransparency[obj] = obj.Transparency
+                end
+                obj.Transparency = 0.8
+            end
+        end
+    else
+        -- Remove x-ray effect
+        for obj, transparency in pairs(originalTransparency) do
+            if obj and obj:IsA("BasePart") then
+                obj.Transparency = transparency
+            end
+        end
+        originalTransparency = {}
+    end
+end
+
+-- Function to handle commands
+local function onChatted(message)
+    message = message:lower()
+    if message == ";coordinates" then
+        getOrCreateCoordinatesDisplay()
+        RunService.RenderStepped:Connect(updateCoordinates)
+    elseif message == ";offcoordinates" then
+        local gui = player:FindFirstChild("PlayerGui"):FindFirstChild("CoordinatesGUI")
+        if gui then
+            gui:Destroy()
+            coordinatesLabel = nil
+        end
+    elseif message == ";xray on" then
+        applyXRayEffect(true)
+    elseif message == ";xray off" then
+        applyXRayEffect(false)
+    end
+end
+
+-- Connect the chat function to the player's Chatted event
+player.Chatted:Connect(onChatted)
+
+--start27
+-- Spin Command Script
+
+local spinSpeed = 0
+local spinning = false
+
+local function startSpinning(speed)
+    spinSpeed = speed
+    spinning = true
+    while spinning do
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+        wait(0.1)
+    end
+end
+
+local function stopSpinning()
+    spinning = false
+end
+
+game.Players.LocalPlayer.Chatted:Connect(function(msg)
+    local args = string.split(msg, " ")
+    if args[1] == ";spin" and args[2] then
+        local speed = tonumber(args[2])
+        if speed then
+            startSpinning(speed)
+        end
+    elseif args[1] == ";unspin" then
+        stopSpinning()
+    end
+end)
+
+--start28
+--reset,hop,kickself,rejoin
+local player = game.Players.LocalPlayer
+local teleportService = game:GetService("TeleportService")
+local placeId = game.PlaceId  -- The placeId of the current game
+
+-- Function to reset the player's character
+local function resetCharacter()
+    if player.Character then
+        player.Character:BreakJoints()
+    end
+end
+
+-- Function to rejoin the same server
+local function rejoinServer()
+    teleportService:TeleportToPlaceInstance(placeId, game.JobId, player)
+end
+
+-- Function to hop to a different server
+local function serverHop()
+    -- Here, you might want to specify how you get a list of servers. This is a generic approach.
+    -- Redirecting to the main place with a new server.
+    teleportService:Teleport(placeId, player)
+end
+
+-- Function to kick the player from the server
+local function kickSelf()
+    player:Kick("You kicked yourself from the server.")
+end
+
+-- Listen for chat commands
+player.Chatted:Connect(function(message)
+    local command = message:lower()
+
+    if command == ";reset" then
+        resetCharacter()
+    elseif command == ";rejoin" then
+        rejoinServer()
+    elseif command == ";hop" then
+        serverHop()
+    elseif command == ";kickself" then
+        kickSelf()
+    end
+end)
+
+--start29
+--donate
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+local donationUI
+
+local function createDonationUI()
+    -- Create ScreenGui
+    donationUI = Instance.new("ScreenGui")
+    donationUI.Parent = player:WaitForChild("PlayerGui")
+    donationUI.Name = "DonationUI"
+
+    -- Create Frame
+    local frame = Instance.new("Frame")
+    frame.Parent = donationUI
+    frame.Size = UDim2.new(0, 0, 0, 0) -- Start small for animation
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    frame.BorderSizePixel = 0
+    frame.ClipsDescendants = true
+    frame.BackgroundTransparency = 1 -- Initially transparent for fade-in effect
+
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Parent = frame
+    titleBar.Size = UDim2.new(1, 0, 0.1, 0)
+    titleBar.Position = UDim2.new(0, 0, 0, 0)
+    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+
+    -- Title Text
+    local title = Instance.new("TextLabel")
+    title.Parent = titleBar
+    title.Size = UDim2.new(0.9, 0, 1, 0)
+    title.Position = UDim2.new(0.05, 0, 0, 0)
+    title.Text = "Donation Page"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.BackgroundTransparency = 1
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+
+    -- Close Button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Parent = titleBar
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextScaled = true
+
+    closeButton.MouseButton1Click:Connect(function()
+        local closeTween = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1})
+        closeTween:Play()
+        closeTween.Completed:Connect(function()
+            donationUI:Destroy()
+            donationUI = nil -- Reset the donationUI so it can be recreated
+        end)
+    end)
+
+    -- Description
+    local description = Instance.new("TextLabel")
+    description.Parent = frame
+    description.Size = UDim2.new(0.9, 0, 0.65, 0) -- Adjust height to prevent overlap
+    description.Position = UDim2.new(0.05, 0, 0.15, 0) -- Adjust position to move it higher
+    description.Text = "All donations are appreciated, it helps in improving our services even more ♥️😎\n\nHow to donate ROBUX?\n1. Copy the link given below\n2. Paste it in your browser\n3. It will be my game\n4. Go to store\n5. And buy the gamepass you want to donate"
+    description.TextColor3 = Color3.fromRGB(240, 240, 240)
+    description.BackgroundTransparency = 1
+    description.TextScaled = true
+    description.TextWrapped = true
+    description.Font = Enum.Font.Gotham
+
+    -- Copy Button
+    local copyButton = Instance.new("TextButton")
+    copyButton.Parent = frame
+    copyButton.Size = UDim2.new(0.9, 0, 0.1, 0)
+    copyButton.Position = UDim2.new(0.05, 0, 0.8, 0) -- Adjust position to avoid overlap
+    copyButton.Text = "https://www.roblox.com/games/15127595640/World-Template"
+    copyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    copyButton.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+    copyButton.TextScaled = true
+    copyButton.Font = Enum.Font.GothamBold
+
+    copyButton.MouseButton1Click:Connect(function()
+        if setclipboard then
+            setclipboard("https://www.roblox.com/games/15127595640/World-Template")
+            copyButton.Text = "Copied!"
+            wait(1)
+            copyButton.Text = "https://www.roblox.com/games/15127595640/World-Template"
+        end
+    end)
+
+    -- Opening Animation
+    local openTween = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.4, 0, 0.5, 0), BackgroundTransparency = 0})
+    openTween:Play()
+end
+
+-- Function to detect chat command
+local function onChat(message)
+    if message:lower() == ";donate" then
+        if not donationUI then
+            createDonationUI()
+        end
+    end
+end
+
+player.Chatted:Connect(onChat)
+
+-- Function to ensure UI works after player reset
+player.CharacterAdded:Connect(function()
+    player.Chatted:Connect(onChat)
+end)
+
+--start30
+--Commands
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+local commands = {
+    ";playerlist", ";commands", ";joinus", ";tp <username>", ";list", ";execute",
+    ";stats", ";info username", ";serverage", ";esp", ";esp off", ";bring username",
+    ";brall", ";undobrall", ";jumpboost", ";bridge", ";bridgeclear", ";lookitem",
+    ";checkinv username", ";flashstep on", ";flashstep off", ";object esp on",
+    ";object esp off", ";wall on", ";wall off", ";spectate username", ";spectate end",
+    ";clone username", ";set point", ";teleport to point", ";walkthrough",
+    ";walkthrough off", ";scale", ";disablescale", ";spin <speed>", ";unspin",
+    ";fling", ";noclip", ";clip", ";flip", ";swim", ";unswim", ";teleport", ";fly",
+    ";fly <speed>", ";unfly", ";hop", ";rejoin", ";kickself", ";glitch",
+    ";closeglitch", ";unglitch", ";revolve <username>", ";unrevolve", ";searchobject",
+    ";follow <username>", ";unfollow", ";reset", ";antilag", ";roleinfo <username>",
+    ";espnonvisibleobj/;envo", ";offenvo", ";light <radius> <strength>", ";setp",
+    ";tpp", ";objecttp <objectname>", ";jumpscare <username>", ";savegame",
+    ";gravity <force>", ";night", ";day", ";coordinates", ";offcoordinates",
+    ";fill <x> <y> <z> platform", ";fill <x> <y> <z> water", ";fov <value>",
+    ";fovreset", ";xray on", ";xray off", ";jump <value>", ";speed <value>",
+    ";health <value>", ";resetstats", ";hitbox <username> <size>", ";hitboxall <size>",
+    ";glitch2", ";unglitch2", ";bringobj <object name>", ";pt", ";pt off", 
+    ";fog <density>", ";fogclear", ";fogcolor <color>", ";shake <intensity>",
+    ";stopshake", ";donate", ";wallwalk on", ";wallwalk off"
+}
+
+local commandsUI
+
+local function createCommandsUI()
+    -- Create ScreenGui
+    commandsUI = Instance.new("ScreenGui")
+    commandsUI.Parent = player:WaitForChild("PlayerGui")
+    commandsUI.Name = "CommandsUI"
+
+    -- Create Frame
+    local frame = Instance.new("Frame")
+    frame.Parent = commandsUI
+    frame.Size = UDim2.new(0.5, 0, 0, 0) -- Start small for animation
+    frame.Position = UDim2.new(0.5, 0, 1, 0) -- Start from bottom
+    frame.AnchorPoint = Vector2.new(0.5, 1)
+    frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    frame.BorderSizePixel = 0
+    frame.ClipsDescendants = true
+    frame.BackgroundTransparency = 1 -- Initially transparent for fade-in effect
+
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Parent = frame
+    titleBar.Size = UDim2.new(1, 0, 0.1, 0)
+    titleBar.Position = UDim2.new(0, 0, 0, 0)
+    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    titleBar.Active = true
+
+    -- Title Text
+    local title = Instance.new("TextLabel")
+    title.Parent = titleBar
+    title.Size = UDim2.new(0.9, 0, 1, 0)
+    title.Position = UDim2.new(0.05, 0, 0, 0)
+    title.Text = "Commands"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.BackgroundTransparency = 1
+    title.TextScaled = true
+    title.Font = Enum.Font.GothamBold
+
+    -- Close Button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Parent = titleBar
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextScaled = true
+
+    closeButton.MouseButton1Click:Connect(function()
+        local closeTween = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.5, 0, 0, 0), BackgroundTransparency = 1})
+        closeTween:Play()
+        closeTween.Completed:Connect(function()
+            commandsUI:Destroy()
+            commandsUI = nil
+        end)
+    end)
+
+    -- Search Bar
+    local searchBar = Instance.new("TextBox")
+    searchBar.Parent = frame
+    searchBar.Size = UDim2.new(0.9, 0, 0.1, 0)
+    searchBar.Position = UDim2.new(0.05, 0, 0.15, 0)
+    searchBar.PlaceholderText = "Search Commands"
+    searchBar.TextColor3 = Color3.fromRGB(240, 240, 240)
+    searchBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    searchBar.TextScaled = true
+    searchBar.Font = Enum.Font.Gotham
+
+    -- Scrolling Frame
+    local scrollingFrame = Instance.new("ScrollingFrame")
+    scrollingFrame.Parent = frame
+    scrollingFrame.Size = UDim2.new(0.9, 0, 0.65, 0)
+    scrollingFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollingFrame.ScrollBarThickness = 6
+    scrollingFrame.BackgroundTransparency = 1
+    scrollingFrame.BorderSizePixel = 0
+
+    -- UIListLayout for commands list
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = scrollingFrame
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 5)
+
+    -- Function to display commands
+    local function displayCommands(filteredCommands)
+        -- Clear existing commands
+        for _, child in ipairs(scrollingFrame:GetChildren()) do
+            if child:IsA("TextLabel") then
+                child:Destroy()
+            end
+        end
+
+        -- Add filtered commands
+        for _, command in ipairs(filteredCommands) do
+            local commandLabel = Instance.new("TextLabel")
+            commandLabel.Parent = scrollingFrame
+            commandLabel.Size = UDim2.new(1, 0, 0, 25)
+            commandLabel.Text = command
+            commandLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            commandLabel.BackgroundTransparency = 1
+            commandLabel.TextScaled = true
+            commandLabel.Font = Enum.Font.Gotham
+        end
+
+        -- Adjust CanvasSize based on the number of commands
+        scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, #filteredCommands * 30)
+    end
+
+    -- Initial display of all commands
+    displayCommands(commands)
+
+    -- Search functionality
+    searchBar:GetPropertyChangedSignal("Text"):Connect(function()
+        local searchText = searchBar.Text:lower()
+        local filteredCommands = {}
+
+        for _, command in ipairs(commands) do
+            if command:lower():find(searchText) then
+                table.insert(filteredCommands, command)
+            end
+        end
+
+        displayCommands(filteredCommands)
+    end)
+
+    -- Dragging functionality
+    local dragging = false
+    local dragInput, startPos, startFramePos
+
+    local function updateInput(input)
+        local delta = input.Position - startPos
+        frame.Position = UDim2.new(
+            startFramePos.X.Scale,
+            startFramePos.X.Offset + delta.X,
+            startFramePos.Y.Scale,
+            startFramePos.Y.Offset + delta.Y
+        )
+    end
+
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            startPos = input.Position
+            startFramePos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            updateInput(input)
+        end
+    end)
+
+    -- Opening Animation
+    local openTween = TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0.5, 0, 0.7, 0), BackgroundTransparency = 0})
+    openTween:Play()
+end
+
+-- Function to detect chat command
+local function onChat(message)
+    if message:lower() == ";commands" then
+        if not commandsUI then
+            createCommandsUI()
+        end
+    end
+end
+
+player.Chatted:Connect(onChat)
+
+-- Function to ensure UI works after player reset
+player.CharacterAdded:Connect(function()
+    player.Chatted:Connect(onChat)
+end)
+
+--start31
+--DonateNotification
+-- LocalScript
+local function createDonationNotification()
+    -- Create the ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Create the Frame for the notification
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.3, 0, 0.1, 0)  -- Width: 30%, Height: 10% of screen size
+    frame.Position = UDim2.new(0.68, 0, 1, 0)  -- Start off-screen, slightly away from the right edge
+    frame.BackgroundTransparency = 0
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    -- Create the UIGradient for the frame background
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(28, 28, 28)),  -- Dark Blue at the top
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(54, 54, 54))   -- Dark Pink at the bottom
+    }
+    uiGradient.Rotation = 45  -- Diagonal gradient
+    uiGradient.Parent = frame
+
+    -- Create the gradient border
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 4, 1, 4)  -- Extend border beyond frame
+    border.Position = UDim2.new(0, -2, 0, -2)  -- Center border around frame
+    border.ZIndex = frame.ZIndex - 1
+    border.Parent = frame
+
+    local borderGradient = Instance.new("UIGradient")
+    borderGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(200, 200, 255)),  -- Light Blue at the top
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(160, 0, 0))   -- Light Pink at the bottom
+    }
+    borderGradient.Rotation = 45  -- Diagonal gradient
+    borderGradient.Parent = border
+
+    -- Create the top bar for the close button
+    local topBar = Instance.new("Frame")
+    topBar.Size = UDim2.new(1, 0, 0.2, 0)  -- Top bar covering 20% height
+    topBar.BackgroundTransparency = 0.3
+    topBar.BorderSizePixel = 0
+    topBar.Parent = frame
+
+    -- Create the close (×) button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.TextSize = 24
+    closeButton.TextColor3 = Color3.new(1, 1, 1)  -- White text
+    closeButton.BackgroundTransparency = 1
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)  -- Small button
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)  -- Positioned to the far right of the top bar
+    closeButton.Parent = topBar
+
+    -- Create the TextLabel for the notification text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0.9, 0, 0.8, 0)  -- Cover remaining 80% height below the top bar, leave space for padding
+    textLabel.Position = UDim2.new(0.05, 0, 0.2, 0)  -- Slight padding from left side
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "Type ;donate or ;directdonate to donate us!"
+    textLabel.Font = Enum.Font.Gotham -- Updated to a modern font
+    textLabel.TextSize = 20
+    textLabel.TextColor3 = Color3.new(1, 1, 1)  -- White text
+    textLabel.TextWrapped = true  -- Enable text wrapping
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center  -- Align text to center
+    textLabel.Parent = frame
+
+    -- Opening animation: Move the frame up from off-screen to its final position
+    frame:TweenPosition(
+        UDim2.new(0.68, 0, 0.85, 0),  -- Final position at the bottom right, closer to the right edge
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.5,  -- Time it takes to move up
+        true
+    )
+
+    -- Close button functionality with fade-out animation
+    local function fadeOutAndDestroy()
+        for i = 1, 10 do
+            frame.BackgroundTransparency = frame.BackgroundTransparency + 0.08
+            border.BackgroundTransparency = border.BackgroundTransparency + 0.08  -- Fade the border as well
+            textLabel.TextTransparency = textLabel.TextTransparency + 0.08
+            topBar.BackgroundTransparency = topBar.BackgroundTransparency + 0.08
+            closeButton.TextTransparency = closeButton.TextTransparency + 0.08
+            wait(0.05)
+        end
+        screenGui:Destroy()
+    end
+
+    -- Trigger fade-out on close button click
+    closeButton.MouseButton1Click:Connect(fadeOutAndDestroy)
+
+    -- Wait for the notification to be displayed for 30 seconds, then auto-close
+    delay(5, fadeOutAndDestroy)
+end
+
+-- Trigger notification every 7 minutes
+while true do
+    wait(320)  -- 7 minutes in seconds
+    createDonationNotification()
+end
+
+--start32
+-- corrector
+
+-- Define valid commands
+local validCommands = {
+    ";playerlist",
+    ";openmenu",
+    ";closemenu",
+    ";tp",
+    ";list",
+    ";execute",
+    ";stats",
+    ";info",
+    ";serverage",
+    ";esp",
+    ";esp off",
+    ";bring",
+    ";brall",
+    ";undobrall",
+    ";jumpboost",
+    ";bridge",
+    ";bridgeclear",
+    ";lookitem",
+    ";checkinv",
+    ";flashstep on",
+    ";flashstep off",
+    ";object esp on",
+    ";object esp off",
+    ";wall on",
+    ";wall off",
+    ";spectate",
+    ";spectate end",
+    ";clone",
+    ";set point",
+    ";teleport to point",
+    ";walkthrough",
+    ";walkthrough off",
+    ";scale",
+    ";disablescale",
+    ";spin",
+    ";unspin",
+    ";fling",
+    ";noclip",
+    ";clip",
+    ";flip",
+    ";swim",
+    ";unswim",
+    ";teleport",
+    ";fly",
+    ";fly",
+    ";unfly",
+    ";hop",
+    ";rejoin",
+    ";kickself",
+    ";glitch",
+    ";closeglitch",
+    ";unglitch",
+    ";revolve",
+    ";unrevolve",
+    ";searchobject",
+    ";follow",
+    ";unfollow",
+    ";reset",
+    ";antilag",
+    ";roleinfo",
+    ";espnonvisibleobj",
+    ";envo",
+    ";offenvo",
+    ";light",
+    ";setp",
+    ";tpp",
+    ";objecttp",
+    ";jumpscare",
+    ";savegame",
+    ";gravity",
+    ";night",
+    ";day",
+    ";coordinates",
+    ";offcoordinates",
+    ";fill",
+    ";fov",
+    ";fovreset",
+    ";xray on",
+    ";xray off",
+    ";jump",
+    ";speed",
+    ";health",
+    ";resetstats",
+    ";hitbox",
+    ";hitboxall",
+    ";glitch2",
+    ";unglitch2",
+    ";bringobj",
+    ";pt",
+    ";pt off",
+    ";fog",
+    ";fogclear",
+    ";fogcolor",
+    ";shake",
+    ";stopshake",
+    ";donate",
+    ";commands",
+    ";joinus",
+    ";wallwalk on",
+    ";wallwalk off"
+}
+
+-- Function to create a notification
+local function createNotification(message)
+    local player = game.Players.LocalPlayer
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = player:WaitForChild("PlayerGui")
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.3, 0, 0.1, 0)
+    frame.Position = UDim2.new(0.68, 0, 1, 0)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(28, 28, 28)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(54, 54, 54))
+    }
+    uiGradient.Rotation = 45
+    uiGradient.Parent = frame
+
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 4, 1, 4)
+    border.Position = UDim2.new(0, -2, 0, -2)
+    border.ZIndex = frame.ZIndex - 1
+    border.Parent = frame
+
+    local borderGradient = Instance.new("UIGradient")
+    borderGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(200, 200, 255)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(160, 0, 0))
+    }
+    borderGradient.Rotation = 45
+    borderGradient.Parent = border
+
+    local topBar = Instance.new("Frame")
+    topBar.Size = UDim2.new(1, 0, 0.2, 0)
+    topBar.BackgroundTransparency = 0.3
+    topBar.BorderSizePixel = 0
+    topBar.Parent = frame
+
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.TextSize = 24
+    closeButton.TextColor3 = Color3.new(1, 1, 1)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+    closeButton.Parent = topBar
+
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0.9, 0, 0.8, 0)
+    textLabel.Position = UDim2.new(0.05, 0, 0.2, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = message
+    textLabel.Font = Enum.Font.Gotham
+    textLabel.TextSize = 20
+    textLabel.TextColor3 = Color3.new(1, 1, 1)
+    textLabel.TextWrapped = true
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center
+    textLabel.Parent = frame
+
+    local appearanceSound = Instance.new("Sound")
+    appearanceSound.SoundId = "rbxassetid://6026984224"
+    appearanceSound.Volume = 1
+    appearanceSound.Parent = screenGui
+    appearanceSound:Play()
+
+    local closeSound = Instance.new("Sound")
+    closeSound.SoundId = "rbxassetid://6895079853"
+    closeSound.Volume = 1
+    closeSound.Parent = screenGui
+
+    frame:TweenPosition(
+        UDim2.new(0.68, 0, 0.85, 0),
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.5,
+        true
+    )
+
+    local function fadeOutAndDestroy()
+        for i = 1, 10 do
+            frame.BackgroundTransparency = frame.BackgroundTransparency + 0.08
+            border.BackgroundTransparency = border.BackgroundTransparency + 0.08
+            textLabel.TextTransparency = textLabel.TextTransparency + 0.08
+            topBar.BackgroundTransparency = topBar.BackgroundTransparency + 0.08
+            closeButton.TextTransparency = closeButton.TextTransparency + 0.08
+            wait(0.05)
+        end
+        screenGui:Destroy()
+    end
+
+    closeButton.MouseButton1Click:Connect(function()
+        closeSound:Play()
+        fadeOutAndDestroy()
+    end)
+
+    delay(5, fadeOutAndDestroy)
+end
+
+-- Function to handle chat input
+local function onChatMessage(message)
+    if message:sub(1, 1) == ";" then
+        local command = message:match(";%S+")
+        if command then
+            local found = false
+            for _, validCommand in ipairs(validCommands) do
+                if command == validCommand then
+                    found = true
+                    break
+                end
+            end
+
+            if not found then
+                -- Check for closest command suggestion
+                local closestCommand = nil
+                local closestDistance = math.huge
+
+                local function levenshtein(a, b)
+                    local m = #a
+                    local n = #b
+                    local d = {}
+
+                    for i = 0, m do
+                        d[i] = {}
+                        d[i][0] = i
+                    end
+
+                    for j = 0, n do
+                        d[0][j] = j
+                    end
+
+                    for i = 1, m do
+                        for j = 1, n do
+                            local cost = a:sub(i, i) == b:sub(j, j) and 0 or 1
+                            d[i][j] = math.min(
+                                d[i - 1][j] + 1,
+                                d[i][j - 1] + 1,
+                                d[i - 1][j - 1] + cost
+                            )
+                        end
+                    end
+
+                    return d[m][n]
+                end
+
+                for _, validCommand in ipairs(validCommands) do
+                    local distance = levenshtein(command:sub(2), validCommand:sub(2))  -- Compare without ';'
+                    if distance < closestDistance then
+                        closestDistance = distance
+                        closestCommand = validCommand
+                    end
+                end
+
+                if closestCommand and closestDistance < 4 then  -- Adjust this threshold if needed
+                    createNotification("Did you mean " .. closestCommand .. "?")
+                else
+                    createNotification("Sorry, we don't have " .. command .. " command.")
+                end
+            end
+        end
+    end
+end
+
+-- Connect chat message event
+game.Players.LocalPlayer.Chatted:Connect(onChatMessage)
+
+--start33
+--CommandNotificationOnRespawn
+
+-- LocalScript
+local function createNotification()
+    -- Create the ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Create the Frame for the notification
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.3, 0, 0.1, 0)  -- Width: 30%, Height: 10% of screen size
+    frame.Position = UDim2.new(0.68, 0, 1, 0)  -- Start off-screen, slightly away from the right edge
+    frame.BackgroundTransparency = 0
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    -- Create the UIGradient for the frame background
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(28, 28, 28)),  -- Dark Blue at the top
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(54, 54, 54))   -- Dark Pink at the bottom
+    }
+    uiGradient.Rotation = 45  -- Diagonal gradient
+    uiGradient.Parent = frame
+
+    -- Create the gradient border
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 4, 1, 4)  -- Extend border beyond frame
+    border.Position = UDim2.new(0, -2, 0, -2)  -- Center border around frame
+    border.ZIndex = frame.ZIndex - 1
+    border.Parent = frame
+
+    local borderGradient = Instance.new("UIGradient")
+    borderGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(200, 200, 255)),  -- Light Blue at the top
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(160, 0, 0))   -- Light Pink at the bottom
+    }
+    borderGradient.Rotation = 45  -- Diagonal gradient
+    borderGradient.Parent = border
+
+    -- Create the top bar for the close button
+    local topBar = Instance.new("Frame")
+    topBar.Size = UDim2.new(1, 0, 0.2, 0)  -- Top bar covering 20% height
+    topBar.BackgroundTransparency = 0.3
+    topBar.BorderSizePixel = 0
+    topBar.Parent = frame
+
+    -- Create the close (×) button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.TextSize = 24
+    closeButton.TextColor3 = Color3.new(1, 1, 1)  -- White text
+    closeButton.BackgroundTransparency = 1
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)  -- Small button
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)  -- Positioned to the far right of the top bar
+    closeButton.Parent = topBar
+
+    -- Create the TextLabel for the notification text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0.9, 0, 0.8, 0)  -- Cover remaining 80% height below the top bar, leave space for padding
+    textLabel.Position = UDim2.new(0.05, 0, 0.2, 0)  -- Slight padding from left side
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = "Type ;commands to view the Commands list."
+    textLabel.Font = Enum.Font.Gotham -- Updated to a modern font
+    textLabel.TextSize = 20
+    textLabel.TextColor3 = Color3.new(1, 1, 1)  -- White text
+    textLabel.TextWrapped = true  -- Enable text wrapping
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center  -- Align text to center
+    textLabel.Parent = frame
+
+    -- Create the sound effect for notification appearance
+    local appearanceSound = Instance.new("Sound")
+    appearanceSound.SoundId = "rbxassetid://6026984224"
+    appearanceSound.Volume = 1
+    appearanceSound.Parent = screenGui
+    appearanceSound:Play()
+
+    -- Create the sound effect for close button
+    local closeSound = Instance.new("Sound")
+    closeSound.SoundId = "rbxassetid://6895079853"
+    closeSound.Volume = 1
+    closeSound.Parent = screenGui
+
+    -- Opening animation: Move the frame up from off-screen to its final position
+    frame:TweenPosition(
+        UDim2.new(0.68, 0, 0.85, 0),  -- Final position at the bottom right, closer to the right edge
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.5,  -- Time it takes to move up
+        true
+    )
+
+    -- Close button functionality with fade-out animation
+    local function fadeOutAndDestroy()
+        for i = 1, 10 do
+            frame.BackgroundTransparency = frame.BackgroundTransparency + 0.08
+            border.BackgroundTransparency = border.BackgroundTransparency + 0.08  -- Fade the border as well
+            textLabel.TextTransparency = textLabel.TextTransparency + 0.08
+            topBar.BackgroundTransparency = topBar.BackgroundTransparency + 0.08
+            closeButton.TextTransparency = closeButton.TextTransparency + 0.08
+            wait(0.05)
+        end
+        screenGui:Destroy()
+    end
+
+    -- Trigger fade-out on close button click and play close sound
+    closeButton.MouseButton1Click:Connect(function()
+        closeSound:Play()
+        fadeOutAndDestroy()
+    end)
+
+    -- Wait for the notification to be displayed for 30 seconds, then auto-close
+    delay(5, fadeOutAndDestroy)
+end
+
+-- Trigger notification on player reset or respawn
+local player = game.Players.LocalPlayer
+player.CharacterAdded:Connect(function()
+    wait(1)  -- Delay to ensure character is fully loaded
+    createNotification()
+end)
+
+--start34
+--Menu
+-- Initialize the menu UI
+local function createMenu()
+    local player = game.Players.LocalPlayer
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.ResetOnSpawn = false -- Ensures UI stays after player respawn
+    screenGui.Parent = game:GetService("CoreGui") -- Parent to CoreGui for persistence
+
+    -- Create the main menu frame
+    local menuFrame = Instance.new("Frame")
+    menuFrame.Size = UDim2.new(0.5, 0, 0.6, 0)  -- Adjust size for larger menu
+    menuFrame.Position = UDim2.new(0.25, 0, 0.2, 0)  -- Centered position
+    menuFrame.BackgroundTransparency = 0.2
+    menuFrame.BorderSizePixel = 0
+    menuFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    menuFrame.Parent = screenGui
+
+    -- Create the UI gradient for the menu frame
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(30, 30, 60)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(60, 60, 90))
+    }
+    uiGradient.Rotation = 45
+    uiGradient.Parent = menuFrame
+
+    -- Create the border
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 4, 1, 4)
+    border.Position = UDim2.new(0, -2, 0, -2)
+    border.ZIndex = menuFrame.ZIndex - 1
+    border.Parent = menuFrame
+
+    local borderGradient = Instance.new("UIGradient")
+    borderGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(200, 200, 255)),
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(255, 200, 200))
+    }
+    borderGradient.Rotation = 45
+    borderGradient.Parent = border
+
+    -- Create the title bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0.1, 0)  -- Smaller height for title bar
+    titleBar.BackgroundTransparency = 0.3
+    titleBar.BorderSizePixel = 0
+    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 60)
+    titleBar.Parent = menuFrame
+
+    -- Create the close button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.TextSize = 24
+    closeButton.TextColor3 = Color3.new(1, 1, 1)
+    closeButton.BackgroundTransparency = 1
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)
+    closeButton.Parent = titleBar
+
+    -- Create the minimize button
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Text = "-"
+    minimizeButton.Font = Enum.Font.SourceSansBold
+    minimizeButton.TextSize = 24
+    minimizeButton.TextColor3 = Color3.new(1, 1, 1)
+    minimizeButton.BackgroundTransparency = 1
+    minimizeButton.Size = UDim2.new(0.1, 0, 1, 0)
+    minimizeButton.Position = UDim2.new(0.8, 0, 0, 0)
+    minimizeButton.Parent = titleBar
+
+    -- Create the menu title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(0.8, 0, 1, 0)
+    titleLabel.Position = UDim2.new(0.1, 0, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "ChatBlox - Menu"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 24
+    titleLabel.TextColor3 = Color3.new(1, 1, 1)
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+    titleLabel.Parent = titleBar
+
+    -- Create the content frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, 0, 0.9, 0)  -- Full width, 90% height
+    contentFrame.Position = UDim2.new(0, 0, 0.1, 0)  -- Below the title bar
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = menuFrame
+
+    -- Create the left container for buttons
+    local leftContainer = Instance.new("Frame")
+    leftContainer.Size = UDim2.new(0.25, 0, 1, 0)  -- 25% width
+    leftContainer.Position = UDim2.new(0, 0, 0, 0)
+    leftContainer.BackgroundTransparency = 1
+    leftContainer.Parent = contentFrame
+
+    -- Create the "Commands" button
+    local commandsButton = Instance.new("TextButton")
+    commandsButton.Size = UDim2.new(1, 0, 0.1, 0)
+    commandsButton.Position = UDim2.new(0, 0, 0, 0)
+    commandsButton.Text = "Commands"
+    commandsButton.Font = Enum.Font.GothamBold
+    commandsButton.TextSize = 18
+    commandsButton.TextColor3 = Color3.new(1, 1, 1)
+    commandsButton.BackgroundTransparency = 0.5
+    commandsButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    commandsButton.Parent = leftContainer
+
+    -- Create the "Info" button
+    local infoButton = Instance.new("TextButton")
+    infoButton.Size = UDim2.new(1, 0, 0.1, 0)
+    infoButton.Position = UDim2.new(0, 0, 0.12, 0)
+    infoButton.Text = "Info"
+    infoButton.Font = Enum.Font.GothamBold
+    infoButton.TextSize = 18
+    infoButton.TextColor3 = Color3.new(1, 1, 1)
+    infoButton.BackgroundTransparency = 0.5
+    infoButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    infoButton.Parent = leftContainer
+
+    -- Create the divider line
+    local dividerLine = Instance.new("Frame")
+    dividerLine.Size = UDim2.new(0, 1, 1, 0)
+    dividerLine.Position = UDim2.new(0.25, 0, 0, 0)
+    dividerLine.BackgroundColor3 = Color3.new(1, 1, 1)
+    dividerLine.BackgroundTransparency = 0.8
+    dividerLine.Parent = contentFrame
+
+    -- Create the right content area
+    local rightContent = Instance.new("ScrollingFrame")
+    rightContent.Size = UDim2.new(0.7, 0, 1, 0)
+    rightContent.Position = UDim2.new(0.26, 0, 0, 0)
+    rightContent.BackgroundTransparency = 1
+    rightContent.ScrollBarThickness = 0
+    rightContent.CanvasSize = UDim2.new(0, 0, 13, 0)
+    rightContent.Parent = contentFrame
+
+    local contentList = Instance.new("UIListLayout")
+    contentList.Parent = rightContent
+
+-- Commands list
+local commandsList = {
+	"NOTE: Please use ;commands to view Commands.",
+	"NOTE: This Script is developed by Kamalsaras",
+	"Roblox username - CanOneBeLucky (ALT ACC)",
+	"NOTE: Type ;donate or ;directdonate to donate us!",
+	"NOTE: its very highly recommended to use",
+	";commands",
+	" ",
+	"Here are the list of Commands:",
+    ";playerlist",
+    ";commands",
+    ";directdonate",
+    ";tp <username>",
+    ";list",
+    ";execute",
+    ";stats",
+    ";info <username>",
+    ";serverage",
+    ";esp",
+    ";esp off",
+    ";bring <username>",
+    ";brall",
+    ";undobrall",
+    ";jumpboost",
+    ";bridge",
+    ";bridgeclear",
+    ";lookitem",
+    ";checkinv <username>",
+    ";flashstep on",
+    ";flashstep off",
+    ";object esp on",
+    ";object esp off",
+    ";wall on",
+    ";wall off",
+    ";spectate <username>",
+    ";spectate end",
+    ";clone <username>",
+    ";set point",
+    ";teleport to point",
+    ";walkthrough",
+    ";walkthrough off",
+    ";scale",
+    ";disablescale",
+    ";spin <speed>",
+    ";unspin",
+    ";fling",
+    ";noclip",
+    ";clip",
+    ";flip",
+    ";swim",
+    ";unswim",
+    ";teleport",
+    ";fly",
+    ";fly <speed>",
+    ";unfly",
+    ";hop",
+    ";rejoin",
+    ";kickself",
+    ";glitch",
+    ";closeglitch",
+    ";unglitch",
+    ";revolve <username>",
+    ";unrevolve",
+    ";searchobject",
+    ";follow <username>",
+    ";unfollow",
+    ";reset",
+    ";antilag",
+    ";roleinfo <username>",
+    ";espnonvisibleobj/;envo",
+    ";offenvo",
+    ";light <radius> <strength>",
+    ";setp",
+    ";tpp",
+    ";objecttp <objectname>",
+    ";jumpscare <username>",
+    ";savegame",
+    ";gravity <force>",
+    ";night",
+    ";day",
+    ";coordinates",
+    ";offcoordinates",
+    ";fill <x> <y> <z> platform",
+    ";fill <x> <y> <z> water",
+    ";fov <value>",
+    ";fovreset",
+    ";xray on",
+    ";xray off",
+    ";jump <value>",
+    ";speed <value>",
+    ";health <value>",
+    ";resetstats",
+    ";hitbox <username> <size>",
+    ";hitboxall <size>",
+    ";glitch2",
+    ";unglitch2",
+    ";bringobj <object name>",
+    ";pt",
+    ";pt off",
+    ";fog <density>",
+    ";fogclear",
+    ";fogcolor <color>",
+    ";shake <intensity>",
+    ";stopshake",
+    ";donate",
+    ";joinus",
+    ";wallwalk on",
+    ";wallwalk off"
+}
+
+    -- Update commands list in rightContent
+    local function updateCommandsList()
+        rightContent:ClearAllChildren()
+        local contentList = Instance.new("UIListLayout")
+        contentList.Parent = rightContent
+        for _, cmd in ipairs(commandsList) do
+            local commandLabel = Instance.new("TextLabel")
+            commandLabel.Size = UDim2.new(1, 0, 0, 30)
+            commandLabel.Text = cmd
+            commandLabel.Font = Enum.Font.Gotham
+            commandLabel.TextSize = 18
+            commandLabel.TextColor3 = Color3.new(1, 1, 1)
+            commandLabel.BackgroundTransparency = 1
+            commandLabel.Parent = rightContent
+        end
+    end
+
+    -- Show info content
+    local function showInfoContent()
+        rightContent:ClearAllChildren()
+        
+        local infoTitle = Instance.new("TextLabel")
+        infoTitle.Size = UDim2.new(1, 0, 0, 30)
+        infoTitle.Text = "scroll down till you see\n Discord Button 😎😂😂🌚"
+        infoTitle.Font = Enum.Font.Gotham
+        infoTitle.TextSize = 18
+        infoTitle.TextColor3 = Color3.new(1, 1, 1)
+        infoTitle.BackgroundTransparency = 1
+        infoTitle.TextWrapped = true
+        infoTitle.Parent = rightContent
+
+        -- Create the "Join Discord" button
+        local discordButton = Instance.new("TextButton")
+        discordButton.Size = UDim2.new(1, 0, 0, 40)
+        discordButton.Position = UDim2.new(0, 0, 0.2, 0)
+        discordButton.Text = "Join Discord"
+        discordButton.Font = Enum.Font.GothamBold
+        discordButton.TextSize = 18
+        discordButton.TextColor3 = Color3.new(1, 1, 1)
+        discordButton.BackgroundTransparency = 0.5
+        discordButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        discordButton.Parent = rightContent
+
+        discordButton.MouseButton1Click:Connect(function()
+            -- Copy Discord link to clipboard
+            setclipboard("www.discord.com")
+            -- Notify the user
+            local notification = Instance.new("TextLabel")
+            notification.Text = "Link copied to clipboard!"
+            notification.Font = Enum.Font.Gotham
+            notification.TextSize = 18
+            notification.TextColor3 = Color3.new(1, 1, 1)
+            notification.BackgroundTransparency = 0.5
+            notification.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            notification.Size = UDim2.new(0.3, 0, 0.1, 0)
+            notification.Position = UDim2.new(0.35, 0, 0.45, 0)
+            notification.Parent = screenGui
+            wait(1)
+            notification:Destroy()
+        end)
+    end
+
+    -- Set button click handlers
+    closeButton.MouseButton1Click:Connect(function()
+        menuFrame.Visible = false
+        showNotification("UI closed.")
+    end)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        menuFrame.Visible = false
+        local uiButton = Instance.new("TextButton")
+        uiButton.Text = "UI"
+        uiButton.Font = Enum.Font.SourceSansBold
+        uiButton.TextSize = 18
+        uiButton.TextColor3 = Color3.new(1, 1, 1)
+        uiButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        uiButton.BackgroundTransparency = 0.5
+        uiButton.Size = UDim2.new(0.1, 0, 0.1, 0)
+        uiButton.Position = UDim2.new(0, 10, 0, 10)
+        uiButton.Parent = screenGui
+
+        uiButton.MouseButton1Click:Connect(function()
+            menuFrame.Visible = true
+            uiButton:Destroy()
+        end)
+    end)
+
+    -- Set button click handlers for commands
+    commandsButton.MouseButton1Click:Connect(updateCommandsList)
+    infoButton.MouseButton1Click:Connect(showInfoContent)
+
+    -- Initial display of commands list
+    updateCommandsList()
+end
+
+-- Ensure the UI persists after the player dies or resets
+local function onCharacterAdded(character)
+    createMenu()
+end
+
+local player = game.Players.LocalPlayer
+player.CharacterAdded:Connect(onCharacterAdded)
+
+-- Initial setup for the first character spawn
+if player.Character then
+    onCharacterAdded(player.Character)
+else
+    player.CharacterAdded:Wait()
+    onCharacterAdded(player.Character)
+end
+
+-- Function to create notification
+local function createNotification(position, message)
+    -- Create the ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    -- Create the Frame for the notification
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.25, 0, 0.1, 0)  -- Reduced width: 25%, height: 10% of screen size
+    frame.Position = position
+    frame.BackgroundTransparency = 0.2
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    -- Create the UIGradient for the frame background
+    local uiGradient = Instance.new("UIGradient")
+    uiGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(28, 28, 28)),  -- Dark Blue at the top
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(54, 54, 54))   -- Dark Pink at the bottom
+    }
+    uiGradient.Rotation = 45  -- Diagonal gradient
+    uiGradient.Parent = frame
+
+    -- Create the gradient border
+    local border = Instance.new("Frame")
+    border.Size = UDim2.new(1, 4, 1, 4)  -- Extend border beyond frame
+    border.Position = UDim2.new(0, -2, 0, -2)  -- Center border around frame
+    border.ZIndex = frame.ZIndex - 1
+    border.Parent = frame
+
+    local borderGradient = Instance.new("UIGradient")
+    borderGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0.0, Color3.fromRGB(200, 200, 255)),  -- Light Blue at the top
+        ColorSequenceKeypoint.new(1.0, Color3.fromRGB(255, 200, 200))   -- Light Pink at the bottom
+    }
+    borderGradient.Rotation = 45  -- Diagonal gradient
+    borderGradient.Parent = border
+
+    -- Create the top bar for the close button
+    local topBar = Instance.new("Frame")
+    topBar.Size = UDim2.new(1, 0, 0.2, 0)  -- Top bar covering 20% height
+    topBar.BackgroundTransparency = 0.3
+    topBar.BorderSizePixel = 0
+    topBar.Parent = frame
+
+    -- Create the close (×) button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Text = "×"
+    closeButton.Font = Enum.Font.GothamBold  -- Modern font
+    closeButton.TextSize = 18
+    closeButton.TextColor3 = Color3.new(1, 1, 1)  -- White text
+    closeButton.BackgroundTransparency = 1
+    closeButton.Size = UDim2.new(0.1, 0, 1, 0)  -- Smaller button
+    closeButton.Position = UDim2.new(0.9, 0, 0, 0)  -- Positioned to the far right of the top bar
+    closeButton.Parent = topBar
+
+    -- Create the TextLabel for the notification text
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, 0, 0.8, 0)  -- Cover remaining 80% height below the top bar
+    textLabel.Position = UDim2.new(0, 0, 0.2, 0)  -- Positioned below the top bar
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = message
+    textLabel.Font = Enum.Font.Gotham  -- Modern font
+    textLabel.TextSize = 16
+    textLabel.TextColor3 = Color3.new(1, 1, 1)  -- White text
+    textLabel.TextWrapped = true  -- Wrap text to fit within the box
+    textLabel.TextYAlignment = Enum.TextYAlignment.Center
+    textLabel.TextXAlignment = Enum.TextXAlignment.Center
+    textLabel.Parent = frame
+
+    -- Create the sound effect for notification appearance
+    local appearanceSound = Instance.new("Sound")
+    appearanceSound.SoundId = "rbxassetid://6026984224"
+    appearanceSound.Volume = 1
+    appearanceSound.Parent = screenGui
+    appearanceSound:Play()
+
+    -- Create the sound effect for close button
+    local closeSound = Instance.new("Sound")
+    closeSound.SoundId = "rbxassetid://6895079853"
+    closeSound.Volume = 1
+    closeSound.Parent = screenGui
+
+    -- Opening animation: Move the frame up from off-screen to its final position
+    frame:TweenPosition(
+        position,  -- Final position
+        Enum.EasingDirection.Out,
+        Enum.EasingStyle.Quad,
+        0.5,  -- Time it takes to move up
+        true
+    )
+
+    -- Close button functionality with fade-out animation
+    local function fadeOutAndDestroy()
+        for i = 1, 10 do
+            frame.BackgroundTransparency = frame.BackgroundTransparency + 0.08
+            border.BackgroundTransparency = border.BackgroundTransparency + 0.08  -- Fade the border as well
+            textLabel.TextTransparency = textLabel.TextTransparency + 0.08
+            topBar.BackgroundTransparency = topBar.BackgroundTransparency + 0.08
+            closeButton.TextTransparency = closeButton.TextTransparency + 0.08
+            wait(0.05)
+        end
+        screenGui:Destroy()
+    end
+
+    -- Trigger fade-out on close button click and play close sound
+    closeButton.MouseButton1Click:Connect(function()
+        closeSound:Play()
+        fadeOutAndDestroy()
+    end)
+
+    -- Wait for the notification to be displayed for 30 seconds, then auto-close
+    delay(30, fadeOutAndDestroy)
+end
+
+-- Trigger three notifications with adjusted spacing
+createNotification(UDim2.new(0.05, 0, 0.85, 0), "Use ;commands to view Commands")  -- Bottom left
+createNotification(UDim2.new(0.35, 0, 0.85, 0), "Type ;donate to donate us")  -- Middle
+createNotification(UDim2.new(0.65, 0, 0.85, 0), "ChatBlox loaded Successfully!")  -- Bottom right
