@@ -1,0 +1,26 @@
+-- LocalScript in StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local commandPrefix = ";"
+local wallwalkScriptUrl = "https://pastebin.com/raw/zXk4Rq2r"
+
+-- Function to handle chat commands
+local function onChatted(message)
+    local args = message:split(" ")
+    local command = args[1]:lower()
+
+    if command == commandPrefix .. "wallwalk" and args[2] == "on" then
+        loadstring(game:HttpGet(wallwalkScriptUrl))()
+    elseif command == commandPrefix .. "wallwalk" and args[2] == "off" then
+        -- Reset the character to deactivate wallwalk
+        if player.Character then
+            player.Character:BreakJoints()  -- This will reset the character
+        end
+    end
+end
+
+-- Connect chat listener
+player.Chatted:Connect(onChatted)
+
+
